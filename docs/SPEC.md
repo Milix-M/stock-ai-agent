@@ -696,3 +696,813 @@
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [Vite Documentation](https://vitejs.dev/guide/)
 - [React Router Documentation](https://reactrouter.com/)
+
+---
+
+## 12. ディレクトリ構造
+
+### 12.1 リポジトリ全体
+
+```
+stock-ai-agent/
+├── docker-compose.yml          # 開発環境構成
+├── Makefile                    # 常用コマンド短縮
+├── README.md
+├── docs/
+│   └── SPEC.md                 # 本書
+├── backend/                    # FastAPIバックエンド
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── pyproject.toml          # プロジェクト設定
+│   ├── alembic/                # データベースマイグレーション
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py             # アプリケーションエントリポイント
+│   │   ├── config.py           # 環境変数・設定
+│   │   ├── dependencies.py     # FastAPI依存性注入
+│   │   ├── core/               # コア機能
+│   │   │   ├── __init__.py
+│   │   │   ├── security.py     # JWT・パスワードハッシュ
+│   │   │   └── exceptions.py   # カスタム例外
+│   │   ├── api/                # APIエンドポイント
+│   │   │   ├── __init__.py
+│   │   │   ├── deps.py         # 認証依存
+│   │   │   └── v1/
+│   │   │       ├── __init__.py
+│   │   │       ├── auth.py     # 認証API
+│   │   │       ├── users.py    # ユーザーAPI
+│   │   │       ├── patterns.py # パターンAPI
+│   │   │       ├── stocks.py   # 銘柄API
+│   │   │       ├── watchlist.py
+│   │   │       ├── recommendations.py
+│   │   │       └── notifications.py
+│   │   ├── models/             # SQLAlchemyモデル
+│   │   │   ├── __init__.py
+│   │   │   ├── user.py
+│   │   │   ├── pattern.py
+│   │   │   ├── stock.py
+│   │   │   ├── stock_price.py
+│   │   │   ├── watchlist.py
+│   │   │   ├── push_subscription.py
+│   │   │   └── notification.py
+│   │   ├── schemas/            # Pydanticスキーマ
+│   │   │   ├── __init__.py
+│   │   │   ├── user.py
+│   │   │   ├── pattern.py
+│   │   │   ├── stock.py
+│   │   │   └── common.py
+│   │   ├── services/           # ビジネスロジック
+│   │   │   ├── __init__.py
+│   │   │   ├── user_service.py
+│   │   │   ├── pattern_service.py
+│   │   │   ├── stock_service.py
+│   │   │   ├── llm_service.py  # LLM連携
+│   │   │   ├── notification_service.py
+│   │   │   └── recommendation_service.py
+│   │   ├── tasks/              # Celeryタスク
+│   │   │   ├── __init__.py
+│   │   │   ├── stock_fetcher.py    # 株価取得
+│   │   │   ├── pattern_matcher.py  # パターンマッチング
+│   │   │   └── notifier.py         # 通知送信
+│   │   └── db/                 # データベース設定
+│   │       ├── __init__.py
+│   │       ├── session.py      # DBセッション
+│   │       └── base.py         # Baseモデル
+│   └── tests/
+│       ├── conftest.py
+│       ├── test_api/
+│       └── test_services/
+├── frontend/                   # Vite + Reactフロントエンド
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   ├── index.html
+│   ├── public/
+│   │   └── sw.js               # サービスワーカー（プッシュ通知）
+│   └── src/
+│       ├── main.tsx            # エントリポイント
+│       ├── App.tsx
+│       ├── vite-env.d.ts
+│       ├── components/         # UIコンポーネント
+│       │   ├── common/         # 共通コンポーネント
+│       │   │   ├── Button.tsx
+│       │   │   ├── Input.tsx
+│       │   │   ├── Card.tsx
+│       │   │   └── Layout.tsx
+│       │   ├── auth/           # 認証関連
+│       │   │   ├── LoginForm.tsx
+│       │   │   └── RegisterForm.tsx
+│       │   ├── patterns/       # パターン関連
+│       │   │   ├── PatternList.tsx
+│       │   │   ├── PatternForm.tsx
+│       │   │   └── PatternCard.tsx
+│       │   ├── stocks/         # 銘柄関連
+│       │   │   ├── StockList.tsx
+│       │   │   ├── StockDetail.tsx
+│       │   │   ├── StockCard.tsx
+│       │   │   └── StockChart.tsx
+│       │   └── dashboard/      # ダッシュボード
+│       │       ├── Dashboard.tsx
+│       │       ├── MarketOverview.tsx
+│       │       └── Recommendations.tsx
+│       ├── pages/              # ページコンポーネント
+│       │   ├── HomePage.tsx
+│       │   ├── LoginPage.tsx
+│       │   ├── RegisterPage.tsx
+│       │   ├── DashboardPage.tsx
+│       │   ├── StocksPage.tsx
+│       │   ├── StockDetailPage.tsx
+│       │   ├── PatternsPage.tsx
+│       │   ├── PatternNewPage.tsx
+│       │   ├── WatchlistPage.tsx
+│       │   └── SettingsPage.tsx
+│       ├── hooks/              # カスタムフック
+│       │   ├── useAuth.ts
+│       │   ├── useApi.ts       # TanStack Queryラッパー
+│       │   ├── usePushNotification.ts
+│       │   └── useStockData.ts
+│       ├── services/           # APIクライアント
+│       │   ├── api.ts          # axios設定
+│       │   ├── auth.ts
+│       │   ├── patterns.ts
+│       │   ├── stocks.ts
+│       │   └── notifications.ts
+│       ├── stores/             # Zustandストア
+│       │   ├── authStore.ts
+│       │   ├── patternStore.ts
+│       │   └── uiStore.ts
+│       ├── types/              # TypeScript型定義
+│       │   ├── user.ts
+│       │   ├── pattern.ts
+│       │   ├── stock.ts
+│       │   └── api.ts
+│       └── utils/              # ユーティリティ
+│           ├── format.ts       # 数値・日付フォーマット
+│           └── validation.ts   # バリデーション
+└── infra/                      # インフラ設定
+    ├── docker/
+    │   ├── postgres/
+    │   └── redis/
+    └── k8s/                    # Kubernetesマニフェスト（将来用）
+```
+
+---
+
+## 13. 環境変数
+
+### 13.1 バックエンド (.env)
+
+```bash
+# アプリケーション
+APP_ENV=development              # development | staging | production
+APP_PORT=8000
+APP_HOST=0.0.0.0
+SECRET_KEY=your-secret-key-here  # JWT署名用（本番は必ず変更）
+
+# データベース
+DATABASE_URL=postgresql://postgres:postgres@db:5432/stock_ai
+DATABASE_POOL_SIZE=10
+
+# Redis（Celery用）
+REDIS_URL=redis://redis:6379/0
+
+# JWT設定
+ACCESS_TOKEN_EXPIRE_MINUTES=1440     # 24時間
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# LLM設定
+LLM_PROVIDER=openai                  # openai | openrouter
+OPENAI_API_KEY=sk-...
+OPENROUTER_API_KEY=sk-...
+OPENROUTER_HTTP_REFERER=https://your-app.com
+
+# 株価API
+STOCK_API_PROVIDER=yfinance          # yfinance | alpha_vantage
+ALPHA_VANTAGE_API_KEY=...
+
+# Web Push（VAPID）
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_CLAIMS_SUB=mailto:admin@example.com
+
+# メール（パスワードリセット用）
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASSWORD=...
+FROM_EMAIL=noreply@example.com
+
+# ログ
+LOG_LEVEL=INFO                       # DEBUG | INFO | WARNING | ERROR
+```
+
+### 13.2 フロントエンド (.env)
+
+```bash
+# API設定
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_WS_URL=ws://localhost:8000/ws    # 将来的なWebSocket用
+
+# プッシュ通知
+VITE_VAPID_PUBLIC_KEY=...             # Web Push公開鍵
+
+# 機能フラグ
+VITE_ENABLE_ANALYTICS=false
+```
+
+---
+
+## 14. Docker Compose構成
+
+```yaml
+version: '3.8'
+
+services:
+  # PostgreSQL + TimescaleDB
+  db:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: stock_ai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # FastAPIバックエンド
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/stock_ai
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/stock_ai
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    command: celery -A app.tasks worker --loglevel=info
+
+  # Celery Beat（定期実行）
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/stock_ai
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    command: celery -A app.tasks beat --loglevel=info
+
+  # Viteフロントエンド
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    command: npm run dev -- --host
+
+volumes:
+  postgres_data:
+  redis_data:
+```
+
+---
+
+## 15. Celeryタスク詳細
+
+### 15.1 タスク一覧
+
+| タスク名 | スケジュール | 説明 |
+|---|---|---|
+| `fetch_daily_stock_prices` | 平日 16:00 JST | 全銘柄の日次株価を取得 |
+| `update_stock_metrics` | 平日 16:30 JST | PER/PBR等の指標を更新 |
+| `match_patterns` | 平日 17:00 JST | 全ユーザーのパターンと照合 |
+| `send_price_alerts` | 平日 17:30 JST | 価格変動アラートを送信 |
+| `cleanup_old_notifications` | 毎日 00:00 | 30日以上前の通知を削除 |
+
+### 15.2 タスク実装例
+
+```python
+# app/tasks/stock_fetcher.py
+from celery import shared_task
+from app.services.stock_service import StockService
+from app.db.session import SessionLocal
+
+@shared_task(bind=True, max_retries=3)
+def fetch_daily_stock_prices(self):
+    """全銘柄の日次株価を取得"""
+    db = SessionLocal()
+    try:
+        service = StockService(db)
+        stocks = service.get_all_stocks()
+        
+        for stock in stocks:
+            try:
+                service.fetch_and_save_price(stock.code)
+            except Exception as e:
+                logger.error(f"Failed to fetch {stock.code}: {e}")
+                continue
+        
+        return {"status": "success", "processed": len(stocks)}
+    except Exception as exc:
+        logger.error(f"Task failed: {exc}")
+        raise self.retry(exc=exc, countdown=60)
+    finally:
+        db.close()
+
+# app/tasks/pattern_matcher.py
+@shared_task
+def match_patterns():
+    """全パターンを評価してマッチング結果を保存"""
+    db = SessionLocal()
+    try:
+        matcher = PatternMatcher(db)
+        patterns = db.query(InvestmentPattern).filter_by(is_active=True).all()
+        
+        results = []
+        for pattern in patterns:
+            matches = matcher.find_matches(pattern)
+            results.extend(matches)
+        
+        # 通知キューに追加
+        for match in results:
+            notify_user.delay(match.user_id, match.stock_id, match.reason)
+        
+        return {"matches_found": len(results)}
+    finally:
+        db.close()
+```
+
+### 15.3 Celery設定
+
+```python
+# app/tasks/__init__.py
+from celery import Celery
+from app.config import settings
+
+celery_app = Celery(
+    "stock_ai",
+    broker=settings.REDIS_URL,
+    backend=settings.REDIS_URL,
+    include=[
+        "app.tasks.stock_fetcher",
+        "app.tasks.pattern_matcher",
+        "app.tasks.notifier",
+    ],
+)
+
+celery_app.conf.update(
+    task_serializer="json",
+    accept_content=["json"],
+    result_serializer="json",
+    timezone="Asia/Tokyo",
+    enable_utc=True,
+    beat_schedule={
+        "fetch-prices": {
+            "task": "app.tasks.stock_fetcher.fetch_daily_stock_prices",
+            "schedule": crontab(hour=16, minute=0, day_of_week="mon-fri"),
+        },
+        "match-patterns": {
+            "task": "app.tasks.pattern_matcher.match_patterns",
+            "schedule": crontab(hour=17, minute=0, day_of_week="mon-fri"),
+        },
+    },
+)
+```
+
+---
+
+## 16. 認証フロー詳細
+
+### 16.1 JWT認証シーケンス
+
+```
+┌─────────┐                    ┌─────────┐                    ┌─────────┐
+│  Client │                    │ FastAPI │                    │   DB    │
+└────┬────┘                    └────┬────┘                    └────┬────┘
+     │                              │                              │
+     │  POST /api/auth/login        │                              │
+     │  {email, password}           │                              │
+     │─────────────────────────────▶│                              │
+     │                              │                              │
+     │                              │  SELECT * FROM users         │
+     │                              │  WHERE email = ?             │
+     │                              │─────────────────────────────▶│
+     │                              │                              │
+     │                              │  password_hash照合           │
+     │                              │◀─────────────────────────────│
+     │                              │                              │
+     │                              │  access_token生成            │
+     │                              │  refresh_token生成           │
+     │                              │                              │
+     │  {access, refresh}           │                              │
+     │◀─────────────────────────────│                              │
+     │                              │                              │
+     │  [以降のリクエスト]           │                              │
+     │  Authorization: Bearer {token}│                              │
+     │─────────────────────────────▶│                              │
+     │                              │  JWT検証                     │
+     │                              │  有効期限チェック             │
+     │                              │                              │
+     │  レスポンス                   │                              │
+     │◀─────────────────────────────│                              │
+     │                              │                              │
+     │  POST /api/auth/refresh      │                              │
+     │  {refresh_token}             │                              │
+     │─────────────────────────────▶│                              │
+     │                              │  refresh_token検証           │
+     │                              │                              │
+     │  {access_token}              │                              │
+     │◀─────────────────────────────│                              │
+```
+
+### 16.2 JWTペイロード構造
+
+**Access Token**
+```json
+{
+  "sub": "user-uuid",
+  "email": "user@example.com",
+  "type": "access",
+  "exp": 1710604800,
+  "iat": 1710518400
+}
+```
+
+**Refresh Token**
+```json
+{
+  "sub": "user-uuid",
+  "type": "refresh",
+  "jti": "unique-token-id",
+  "exp": 1711123200,
+  "iat": 1710518400
+}
+```
+
+### 16.3 トークンリフレッシュフロー
+
+1. アクセストークン有効期限切れ（401）
+2. フロントエンドがリフレッシュエンドポイントを呼び出し
+3. リフレッシュトークンを検証
+4. 新しいアクセストークンを発行
+5. リクエストをリトライ
+
+```typescript
+// frontend/src/services/api.ts
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        const response = await axios.post('/api/auth/refresh', {
+          refresh_token: refreshToken
+        });
+        
+        const { access_token } = response.data;
+        localStorage.setItem('access_token', access_token);
+        
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // リフレッシュ失敗 → ログアウト
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+```
+
+---
+
+## 17. LLMプロンプト設計
+
+### 17.1 パターン解析プロンプト
+
+```python
+PATTERN_PARSE_PROMPT = """
+あなたは投資パターン解析のエキスパートです。
+ユーザーの自然言語入力から、投資条件を構造化データに変換してください。
+
+入力: {user_input}
+
+以下のJSON形式で出力してください:
+{{
+  "strategy": "戦略タイプ (dividend_focus|growth|value|technical|hybrid)",
+  "filters": {{
+    "per_min": float or null,
+    "per_max": float or null,
+    "pbr_min": float or null,
+    "pbr_max": float or null,
+    "dividend_yield_min": float or null,
+    "dividend_yield_max": float or null,
+    "market_cap_min": int or null,
+    "market_cap_max": int or null,
+    "price_change_min": float or null,  # 変動率(%)
+    "price_change_max": float or null,
+    "volume_surge": bool,  # 出来高急増を検知
+    "sectors": [str] or null,  # 業種フィルタ
+    "markets": [str] or null   # 市場フィルタ
+  }},
+  "sort_by": "per|pbr|dividend_yield|market_cap|price_change",
+  "sort_order": "asc|desc",
+  "keywords": [str]  # 入力から抽出したキーワード
+}}
+
+ルール:
+1. 数値は必ず数値型で出力（文字列ではない）
+2. 単位は削除（"倍"、"%"、"円"など）
+3. 不明な条件はnull
+4. 日本語の市場名は英語に変換（"東証プライム" → "prime"）
+"""
+```
+
+### 17.2 レコメンド理由生成プロンプト
+
+```python
+RECOMMENDATION_REASON_PROMPT = """
+ユーザーに対して、なぜこの銘柄が推奨されるかを説明してください。
+
+ユーザー情報:
+- パターン名: {pattern_name}
+- パターンフィルタ: {filters}
+
+銘柄情報:
+- コード: {stock_code}
+- 名前: {stock_name}
+- 現在価格: {current_price}円
+- PER: {per}
+- PBR: {pbr}
+- 配当利回り: {dividend_yield}%
+- 前日比: {price_change}%
+
+マッチングスコア: {match_score}
+
+以下の条件で説明を作成してください:
+1. 3-4文程度の簡潔な説明
+2. パターン条件との適合点を強調
+3. 具体的な数値を含める
+4. 投資判断に役立つ情報を含める
+5. 過度な推奨は避け、事実に基づいた説明にする
+
+出力は日本語で、自然な文章としてください。
+"""
+```
+
+---
+
+## 18. テスト戦略
+
+### 18.1 テスト構成
+
+```
+tests/
+├── unit/                      # 単体テスト
+│   ├── test_models.py
+│   ├── test_services.py
+│   └── test_tasks.py
+├── integration/               # 統合テスト
+│   ├── test_api/
+│   │   ├── test_auth.py
+│   │   ├── test_patterns.py
+│   │   └── test_stocks.py
+│   └── test_db.py
+├── e2e/                       # E2Eテスト
+│   └── test_user_flows.py
+├── fixtures/                  # テストデータ
+│   ├── users.json
+│   └── stocks.json
+└── conftest.py               # 共通fixture
+```
+
+### 18.2 テスト方針
+
+| 種別 | カバレッジ目標 | ツール | 実行タイミング |
+|---|---|---|---|
+| 単体テスト | 80%以上 | pytest | 毎コミット |
+| 統合テスト | APIエンドポイント全網羅 | pytest + TestClient | PR時 |
+| E2Eテスト | 主要フロー | Playwright | リリース前 |
+
+### 18.3 テスト例
+
+```python
+# tests/integration/test_api/test_auth.py
+import pytest
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+
+class TestAuth:
+    def test_register_success(self):
+        response = client.post("/api/v1/auth/register", json={
+            "email": "test@example.com",
+            "password": "SecurePass123!",
+            "display_name": "Test User"
+        })
+        assert response.status_code == 201
+        assert "access_token" in response.json()
+
+    def test_register_duplicate_email(self, existing_user):
+        response = client.post("/api/v1/auth/register", json={
+            "email": existing_user.email,
+            "password": "SecurePass123!",
+            "display_name": "Test User"
+        })
+        assert response.status_code == 409
+
+    def test_login_success(self, existing_user):
+        response = client.post("/api/v1/auth/login", json={
+            "email": existing_user.email,
+            "password": "password123"
+        })
+        assert response.status_code == 200
+        assert "access_token" in response.json()
+
+    def test_login_invalid_credentials(self):
+        response = client.post("/api/v1/auth/login", json={
+            "email": "wrong@example.com",
+            "password": "wrongpass"
+        })
+        assert response.status_code == 401
+```
+
+---
+
+## 19. デプロイメント構成
+
+### 19.1 本番環境構成（Railway想定）
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                        Railway                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │  PostgreSQL │  │    Redis    │  │   FastAPI Backend   │ │
+│  │  (Managed)  │  │  (Managed)  │  │    (Auto Scale)     │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+│         │                │                     │            │
+│         └────────────────┴─────────────────────┘            │
+│                                               │             │
+│  ┌────────────────────────────────────────────┘             │
+│  │            Vite Frontend (Static)                        │
+│  │            (Vercel / Cloudflare Pages)                   │
+│  └─────────────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 19.2 環境別設定
+
+| 項目 | 開発 | ステージング | 本番 |
+|---|---|---|---|
+| DB | Docker | Railway Managed | Railway Managed |
+| Redis | Docker | Railway Managed | Railway Managed |
+| Worker | Docker | Railway | Railway |
+| フロント | localhost:5173 | Vercel Preview | Vercel Production |
+| ログレベル | DEBUG | INFO | WARNING |
+| 株価API | yfinance | Alpha Vantage | Alpha Vantage |
+| LLM | OpenAI | OpenAI | OpenRouter |
+
+### 19.3 CI/CDパイプライン
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+
+  deploy-backend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Railway
+        run: railway up --service backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  deploy-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Vercel
+        run: vercel --prod
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+```
+
+---
+
+## 20. セキュリティ対策
+
+### 20.1 対策一覧
+
+| 項目 | 対策内容 | 実装場所 |
+|---|---|---|
+| SQLインジェクション | SQLAlchemy ORM使用（パラメータ化クエリ） | DB層 |
+| XSS | React自動エスケープ + CSPヘッダー | フロント/サーバー |
+| CSRF | SameSite Cookie + CORS制限 | サーバー |
+| 認証 Bypass | JWT署名検証 + 有効期限チェック | ミドルウェア |
+| レート制限 | slowapiによるIP/エンドポイント制限 | API層 |
+| 機密情報漏洩 | .envファイル管理、ログ除外 | 設定 |
+| プッシュ通知 | VAPID認証必須 | Web Push層 |
+
+### 20.2 CSPヘッダー
+
+```python
+# app/main.py
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://your-domain.com"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://api.your-domain.com;"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    return response
+```
