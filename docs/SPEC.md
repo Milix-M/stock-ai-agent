@@ -88,7 +88,7 @@
 
 ```
 ┌─────────────────────────────────────┐
-│         Next.js (Frontend)          │
+│      Vite + React (Frontend)        │
 │  ├─ サービスワーカー（Push受信）     │
 │  ├─ 銘柄登録・パターン設定UI         │
 │  └─ ダッシュボード                  │
@@ -112,7 +112,10 @@
 
 | 層 | 技術 | バージョン/備考 |
 |---|---|---|
-| **フロントエンド** | Next.js | App Router, TypeScript |
+| **フロントエンド** | Vite + React | React Router, TypeScript |
+| **状態管理** | Zustand | 軽量なグローバル状態管理 |
+| **UIコンポーネント** | Tailwind CSS + Headless UI | スタイリング |
+| **HTTPクライアント** | TanStack Query (React Query) | キャッシュ、自動再取得 |
 | **バックエンド** | FastAPI | Python 3.12+, async |
 | **データベース** | PostgreSQL | 15+ |
 | **時系列DB** | TimescaleDB | PostgreSQL拡張 |
@@ -691,4 +694,5 @@
 
 - [Web Push API - MDN](https://developer.mozilla.org/ja/docs/Web/API/Push_API)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Next.js Documentation](https://nextjs.org/docs)
+- [Vite Documentation](https://vitejs.dev/guide/)
+- [React Router Documentation](https://reactrouter.com/)

@@ -10,7 +10,7 @@
 
 ## 技術スタック
 
-- **Frontend**: Next.js (TypeScript, App Router)
+- **Frontend**: Vite + React + React Router (TypeScript)
 - **Backend**: FastAPI (Python)
 - **Database**: PostgreSQL + TimescaleDB
 - **Task Queue**: Celery + Redis
