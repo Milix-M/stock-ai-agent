@@ -120,6 +120,8 @@
 | **データベース** | PostgreSQL | 15+ |
 | **時系列DB** | TimescaleDB | PostgreSQL拡張 |
 | **タスクキュー** | Celery + Redis | 定期実行、非同期処理 |
+| **AIエージェント** | PydanticAI | 型安全なエージェント実装 |
+| **エージェント連携** | 独自実装 (Redis Pub/Sub) | マルチエージェント通信 |
 | **株価API** | yfinance / Alpha Vantage | 開発/本番切り替え |
 | **LLM** | OpenAI API / OpenRouter | 設定で切り替え |
 | **Web Push** | pywebpush + VAPID | 標準Web Push API |
@@ -2179,6 +2181,268 @@ agents:
       min_match_score: 0.7       # 通知閾値
       max_daily_notifications: 5 # 1日最大通知数
       cooldown_hours: 24         # 同一銘柄通知間隔
+```
+
+### 21.9 PydanticAI実装詳細
+
+#### 技術選定理由
+
+| 観点 | PydanticAIを選ぶ理由 |
+|---|---|
+| **型安全** | 全入出力がPydanticモデルで厳密に型付け。FastAPIと同じエコシステム |
+| **シンプル** | LangChainのような重い抽象化なし。理解・メンテナンス容易 |
+| **FastAPI親和性** | スキーマ共有可能。同じチームがバックエンド・エージェント両方開発可能 |
+| **依存注入** | クリーンアーキテクチャ。テスト容易・モックしやすい |
+
+#### ディレクトリ構造
+
+```
+backend/app/agents/
+├── __init__.py
+├── base.py                 # BaseAgent抽象クラス
+├── orchestrator.py         # AgentOrchestrator（エージェント間連携）
+├── tools.py                # ツール定義（Pydanticモデル）
+├── deps.py                 # 依存性（Deps）定義
+├── monitoring_agent.py     # MonitoringAgent実装
+├── analysis_agent.py       # AnalysisAgent実装
+├── recommendation_agent.py # RecommendationAgent実装
+├── memory.py               # AgentSharedMemory
+└── ops.py                  # AgentOps（監視・評価）
+```
+
+#### ベースエージェント実装
+
+```python
+# app/agents/base.py
+from abc import ABC, abstractmethod
+from typing import Generic, TypeVar
+from pydantic_ai import Agent
+from pydantic_ai.result import RunResult
+
+ResultT = TypeVar('ResultT')
+
+class BaseAgent(ABC, Generic[ResultT]):
+    """
+    全エージェントの基底クラス
+    PydanticAIのAgentをラップし、共通機能を提供
+    """
+    
+    def __init__(self, agent: Agent, memory: AgentSharedMemory, ops: AgentOps):
+        self.agent = agent
+        self.memory = memory
+        self.ops = ops
+        self.name = self.__class__.__name__
+    
+    @abstractmethod
+    async def run(self, context: AgentContext) -> RunResult[ResultT]:
+        """エージェントのメイン実行ロジック"""
+        pass
+    
+    async def execute(self, context: AgentContext) -> RunResult[ResultT]:
+        """
+        実行ラッパー（トレース・ログ記録）
+        """
+        trace_id = await self.ops.trace_execution(self.name, context.task_id)
+        
+        try:
+            result = await self.run(context)
+            await self.ops.log_step(trace_id, {
+                "step": "completed",
+                "result": result.data if hasattr(result, 'data') else None
+            })
+            return result
+        except Exception as e:
+            await self.ops.log_step(trace_id, {"step": "error", "error": str(e)})
+            raise
+```
+
+#### エージェント定義例（MonitoringAgent）
+
+```python
+# app/agents/monitoring_agent.py
+from pydantic_ai import Agent
+from pydantic import BaseModel
+from typing import List
+
+from app.agents.base import BaseAgent
+from app.agents.tools import fetch_stock_price, check_price_threshold
+from app.agents.deps import AgentDeps
+
+class MonitoringResult(BaseModel):
+    """監視結果の型定義"""
+    alerts: List[StockAlert]
+    checked_stocks: int
+    triggered_count: int
+
+class StockAlert(BaseModel):
+    stock_code: str
+    stock_name: str
+    alert_type: str  # "price_change" | "volume_surge" | "ma_cross"
+    severity: str    # "info" | "warning" | "critical"
+    message: str
+    current_value: float
+    threshold: float
+
+# PydanticAIエージェント定義
+monitoring_agent = Agent(
+    model="openai:gpt-4o-mini",  # 軽量モデルで十分
+    result_type=MonitoringResult,
+    system_prompt="""
+    あなたは株価監視の専門家です。
+    与えられた銘柄リストを監視し、重要な変化を検知してください。
+    閾値を超えた変化のみをアラートとして報告してください。
+    """,
+    deps_type=AgentDeps,  # 依存性の型
+)
+
+# ツール登録
+@monitoring_agent.tool
+async def fetch_stock_price_tool(ctx, code: str) -> dict:
+    """株価を取得するツール"""
+    service = ctx.deps.stock_service
+    return await service.fetch_price(code)
+
+@monitoring_agent.tool
+async def check_threshold_tool(ctx, code: str, threshold: float) -> bool:
+    """閾値チェックツール"""
+    return await ctx.deps.stock_service.is_threshold_exceeded(code, threshold)
+
+class MonitoringAgentImpl(BaseAgent[MonitoringResult]):
+    """監視エージェント実装"""
+    
+    async def run(self, context: AgentContext) -> RunResult[MonitoringResult]:
+        # 監視対象銘柄を取得
+        watchlist = await self.memory.get_watchlist(context.user_id)
+        
+        # PydanticAIエージェント実行
+        result = await monitoring_agent.run(
+            f"以下の銘柄を監視してください: {[s.code for s in watchlist]}",
+            deps=AgentDeps(
+                stock_service=context.stock_service,
+                user_id=context.user_id
+            )
+        )
+        
+        # アラートがあれば分析エージェントに依頼
+        if result.data.triggered_count > 0:
+            await self.orchestrator.request_analysis(
+                user_id=context.user_id,
+                alerts=result.data.alerts
+            )
+        
+        return result
+```
+
+#### エージェント間連携（独自実装）
+
+```python
+# app/agents/orchestrator.py
+import json
+import redis.asyncio as redis
+from enum import Enum
+
+class MessageType(str, Enum):
+    REQUEST_ANALYSIS = "request_analysis"
+    REQUEST_RECOMMENDATION = "request_recommendation"
+    ANALYSIS_COMPLETE = "analysis_complete"
+    RECOMMENDATION_READY = "recommendation_ready"
+
+class AgentOrchestrator:
+    """
+    エージェント間通信を管理（Redis Pub/Subベース）
+    """
+    
+    def __init__(self, redis_client: redis.Redis):
+        self.redis = redis_client
+        self.channels = {
+            "monitoring": "agent:monitoring",
+            "analysis": "agent:analysis",
+            "recommendation": "agent:recommendation"
+        }
+    
+    async def publish(self, target_agent: str, message: dict):
+        """メッセージを特定エージェントに送信"""
+        channel = self.channels.get(target_agent)
+        if channel:
+            await self.redis.publish(channel, json.dumps(message))
+    
+    async def subscribe(self, agent_name: str):
+        """エージェントが自分のチャンネルを購読"""
+        channel = self.channels.get(agent_name)
+        pubsub = self.redis.pubsub()
+        await pubsub.subscribe(channel)
+        
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                yield json.loads(message["data"])
+    
+    # ヘルパーメソッド
+    async def request_analysis(self, user_id: str, alerts: list):
+        """分析エージェントに依頼"""
+        await self.publish("analysis", {
+            "type": MessageType.REQUEST_ANALYSIS,
+            "user_id": user_id,
+            "payload": {"alerts": alerts},
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    async def request_recommendation(self, user_id: str, analysis_result: dict):
+        """提案エージェントに依頼"""
+        await self.publish("recommendation", {
+            "type": MessageType.REQUEST_RECOMMENDATION,
+            "user_id": user_id,
+            "payload": analysis_result,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+```
+
+#### 依存性（Deps）定義
+
+```python
+# app/agents/deps.py
+from dataclasses import dataclass
+from typing import Optional
+
+from app.services.stock_service import StockService
+from app.services.news_service import NewsService
+from app.services.pattern_service import PatternService
+
+@dataclass
+class AgentDeps:
+    """
+    エージェントが使用する依存性
+    PydanticAIのdeps_typeに渡される
+    """
+    stock_service: StockService
+    news_service: Optional[NewsService] = None
+    pattern_service: Optional[PatternService] = None
+    user_id: Optional[str] = None
+```
+
+#### インストール要件
+
+```txt
+# backend/requirements.txt
+# ...既存の依存関係...
+
+# AIエージェント
+pydantic-ai>=0.0.20
+openai>=1.0.0
+
+# エージェント間通信（既存のRedis使用）
+redis>=5.0.0
+```
+
+#### 型安全の利点
+
+```python
+# PydanticAIの型安全な使い方
+result = await monitoring_agent.run("監視を実行")
+
+# result.dataはMonitoringResult型として推論される
+for alert in result.data.alerts:  # IDEで補完効く
+    print(alert.stock_code)        # 型チェック可能
+    print(alert.severity)          # 存在しない属性は警告
 ```
 
 ---
