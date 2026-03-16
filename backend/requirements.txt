@@ -22,8 +22,8 @@ python-jose[cryptography]==3.3.0
 python-multipart==0.0.17
 
 # Validation & Serialization
-pydantic==2.9.2
-pydantic-settings==2.6.1
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
 email-validator==2.2.0
 
 # HTTP Client
@@ -32,7 +32,7 @@ aiohttp==3.11.2
 
 # AI Agent
 pydantic-ai==0.0.20
-openai==1.55.0
+openai>=1.59.0
 
 # Stock Data
 yfinance==0.2.50
