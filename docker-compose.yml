@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # PostgreSQL + TimescaleDB
+  db:
+    image: timescale/timescaledb:latest-pg15
+    container_name: stock-ai-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: stock_ai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - stock-ai-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: stock-ai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - stock-ai-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stock-ai-backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/stock_ai
+      - REDIS_URL=redis://redis:6379/0
+      - APP_ENV=development
+      - APP_PORT=8000
+      - APP_HOST=0.0.0.0
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - LOG_LEVEL=DEBUG
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - stock-ai-network
+
+  # Celery Worker
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stock-ai-worker
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/stock_ai
+      - REDIS_URL=redis://redis:6379/0
+      - APP_ENV=development
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - LOG_LEVEL=INFO
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    command: celery -A app.tasks worker --loglevel=info
+    networks:
+      - stock-ai-network
+
+  # Celery Beat (Scheduler)
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stock-ai-beat
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/stock_ai
+      - REDIS_URL=redis://redis:6379/0
+      - APP_ENV=development
+      - SECRET_KEY=dev-secret-key-change-in-production
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    command: celery -A app.tasks beat --loglevel=info
+    networks:
+      - stock-ai-network
+
+  # Vite Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: stock-ai-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev -- --host
+    networks:
+      - stock-ai-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  stock-ai-network:
+    driver: bridge
