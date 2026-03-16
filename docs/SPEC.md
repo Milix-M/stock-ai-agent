@@ -1463,9 +1463,731 @@ jobs:
 
 ---
 
+## 21. AIエージェントアーキテクチャ
+
+### 21.1 マルチエージェント構成
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         エージェントオーケストレーター                      │
+│                    （AgentOrchestrator - 中央制御）                        │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+           ┌────────────────────────┼────────────────────────┐
+           │                        │                        │
+           ▼                        ▼                        ▼
+┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
+│   監視エージェント   │  │   分析エージェント   │  │   提案エージェント   │
+│  (MonitoringAgent)  │  │  (AnalysisAgent)    │  │ (RecommendationAgent)│
+├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
+│ 責任: 市場・銘柄の   │  │ 責任: データ分析・   │  │ 責任: ユーザーへの   │
+│       継続的監視    │  │       洞察生成      │  │       提案・通知     │
+│                     │  │                     │  │                     │
+│ トリガー:           │  │ トリガー:           │  │ トリガー:           │
+│ - 定期的スケジュール │  │ - 監視エージェント   │  │ - 分析エージェント   │
+│ - 価格変動検知      │  │   からの依頼        │  │   からの依頼        │
+│                     │  │ - ユーザー直接依頼   │  │ - 時間ベース        │
+│                     │  │                     │  │                     │
+│ 使用ツール:         │  │ 使用ツール:         │  │ 使用ツール:         │
+│ - 株価取得          │  │ - ニュース検索      │  │ - パターンマッチング │
+│ - アラート検知      │  │ - 決算データ取得    │  │ - 通知送信          │
+│ - 閾値チェック      │  │ - テクニカル分析    │  │ - メール送信        │
+└─────────────────────┘  └─────────────────────┘  └─────────────────────┘
+           │                        │                        │
+           └────────────────────────┴────────────────────────┘
+                                    │
+                                    ▼
+                    ┌─────────────────────────────┐
+                    │        共有メモリ            │
+                    │    （Agent Shared Memory）   │
+                    │                             │
+                    │  - 監視状態                  │
+                    │  - 分析結果                  │
+                    │  - 提案履歴                  │
+                    │  - ユーザー・フィードバック   │
+                    └─────────────────────────────┘
+```
+
+### 21.2 エージェント定義
+
+#### 監視エージェント (MonitoringAgent)
+
+```python
+class MonitoringAgent(BaseAgent):
+    """
+    市場・銘柄を継続的に監視し、重要な変化を検知するエージェント
+    """
+    
+    name = "monitoring_agent"
+    description = "株価・市場の継続的監視と変化検知"
+    
+    tools = [
+        "fetch_stock_price",      # 株価取得
+        "check_price_threshold",   # 価格閾値チェック
+        "detect_volume_surge",     # 出来高急増検知
+        "detect_moving_average",   # 移動平均線検知
+        "get_market_overview",     # 市場概況取得
+    ]
+    
+    async def run(self, context: AgentContext) -> AgentResult:
+        """
+        監視ループ:
+        1. 全ウォッチリスト銘柄を取得
+        2. 各銘柄の価格・出来高を確認
+        3. 閾値超過を検知
+        4. 分析エージェントに依頼 or 直接提案エージェントに依頼
+        """
+        pass
+```
+
+#### 分析エージェント (AnalysisAgent)
+
+```python
+class AnalysisAgent(BaseAgent):
+    """
+    データを分析し、洞察を生成するエージェント
+    """
+    
+    name = "analysis_agent"
+    description = "銘柄分析・ニュース分析・技術的分析"
+    
+    tools = [
+        "search_news",            # ニュース検索
+        "fetch_financial_data",   # 決算データ取得
+        "technical_analysis",     # テクニカル分析
+        "sentiment_analysis",     # 感情分析
+        "compare_with_sector",    # セクター比較
+    ]
+    
+    async def run(self, context: AgentContext) -> AgentResult:
+        """
+        分析フロー:
+        1. 対象銘柄の基本情報取得
+        2. 関連ニュース検索・分析
+        3. 決算データ確認
+        4. テクニカル指標計算
+        5. 分析レポート生成
+        6. 提案エージェントに依頼
+        """
+        pass
+```
+
+#### 提案エージェント (RecommendationAgent)
+
+```python
+class RecommendationAgent(BaseAgent):
+    """
+    ユーザーの投資パターンに基づき、最適な提案を生成するエージェント
+    """
+    
+    name = "recommendation_agent"
+    description = "パターンマッチング・提案生成・通知送信"
+    
+    tools = [
+        "match_user_pattern",     # ユーザーパターンマッチング
+        "generate_recommendation", # 提案生成
+        "send_notification",      # 通知送信
+        "send_email",             # メール送信
+        "save_recommendation",    # 提案保存
+    ]
+    
+    async def run(self, context: AgentContext) -> AgentResult:
+        """
+        提案フロー:
+        1. ユーザーの投資パターンを取得
+        2. 分析結果とパターンを照合
+        3. マッチングスコア計算
+        4. 提案理由生成（LLM使用）
+        5. 通知送信判断
+        6. ユーザーに通知
+        """
+        pass
+```
+
+### 21.3 エージェント間通信
+
+```python
+# エージェント間メッセージ形式
+class AgentMessage(BaseModel):
+    message_id: UUID                    # メッセージID
+    from_agent: str                     # 送信元エージェント
+    to_agent: str                       # 宛先エージェント
+    message_type: MessageType           # メッセージタイプ
+    payload: dict                       # ペイロード
+    timestamp: datetime
+    priority: Priority = Priority.NORMAL # 優先度
+
+class MessageType(str, Enum):
+    REQUEST_ANALYSIS = "request_analysis"      # 分析依頼
+    REQUEST_RECOMMENDATION = "request_rec"     # 提案依頼
+    ANALYSIS_COMPLETE = "analysis_complete"    # 分析完了
+    RECOMMENDATION_READY = "rec_ready"         # 提案準備完了
+    ALERT_TRIGGERED = "alert_triggered"        # アラート発火
+    FEEDBACK_RECEIVED = "feedback_received"    # フィードバック受信
+
+# メッセージブローカー（Redis使用）
+class AgentMessageBroker:
+    async def publish(self, message: AgentMessage):
+        """メッセージを公開"""
+        await redis.publish(f"agent:{message.to_agent}", message.json())
+    
+    async def subscribe(self, agent_name: str):
+        """エージェント宛てメッセージを購読"""
+        async for message in redis.subscribe(f"agent:{agent_name}"):
+            yield AgentMessage.parse_raw(message)
+```
+
+### 21.4 エージェントツール定義
+
+| ツール名 | 説明 | 使用エージェント |
+|---|---|---|
+| `fetch_stock_price` | 指定銘柄の最新株価を取得 | 監視エージェント |
+| `check_price_threshold` | 価格が閾値を超えたかチェック | 監視エージェント |
+| `detect_volume_surge` | 出来高の急増を検知 | 監視エージェント |
+| `detect_moving_average` | 移動平均線クロスを検知 | 監視エージェント |
+| `search_news` | 銘柄関連ニュースを検索 | 分析エージェント |
+| `fetch_financial_data` | 決算データを取得 | 分析エージェント |
+| `technical_analysis` | テクニカル指標を計算 | 分析エージェント |
+| `sentiment_analysis` | ニュースの感情分析 | 分析エージェント |
+| `match_user_pattern` | ユーザー投資パターンと照合 | 提案エージェント |
+| `generate_recommendation` | LLMで提案理由を生成 | 提案エージェント |
+| `send_notification` | ブラウザプッシュ通知を送信 | 提案エージェント |
+| `save_to_memory` | 分析結果を共有メモリに保存 | 全エージェント |
+
+### 21.5 エージェントワークフロー例
+
+**シナリオ: ウォッチリスト銘柄の急騰検知**
+
+```
+[16:00 JST] Celery Beatが監視エージェントを起動
+       │
+       ▼
+┌──────────────┐
+│ 監視エージェント │
+│ ・全銘柄の価格取得 │
+│ ・前日比を計算    │
+│ ・閾値(±5%)超過を検知 │
+└──────┬───────┘
+       │ 銘柄Aが+8%上昇を検知
+       │ MessageType.ALERT_TRIGGERED
+       ▼
+┌──────────────┐
+│ 分析エージェント │ ← 依頼を受信
+│ ・銘柄Aのニュース検索 │
+│ ・決算データ確認    │
+│ ・テクニカル分析    │
+│ ・分析レポート生成  │
+└──────┬───────┘
+       │ MessageType.ANALYSIS_COMPLETE
+       ▼
+┌──────────────┐
+│ 提案エージェント │ ← 依頼を受信
+│ ・ユーザーのパターン取得 │
+│ ・マッチングスコア計算   │
+│ ・LLMで提案理由生成     │
+│ ・スコア90%超なら通知   │
+└──────┬───────┘
+       │ プッシュ通知送信
+       ▼
+┌──────────────┐
+│ ユーザーへ通知   │
+│ "銘柄Aが+8%、   │
+│  あなたの高配当 │
+│  パターンにマッチ" │
+└──────────────┘
+```
+
+### 21.6 共有メモリ（Agent Shared Memory）
+
+```python
+# エージェント間で共有する状態・履歴
+class AgentSharedMemory:
+    """
+    Redisベースの共有メモリ
+    """
+    
+    async def save_monitoring_state(self, stock_code: str, state: dict):
+        """監視状態を保存"""
+        key = f"monitoring:{stock_code}"
+        await redis.hset(key, mapping=state)
+        await redis.expire(key, 86400)  # 24時間保持
+    
+    async def get_analysis_history(self, stock_code: str, limit: int = 10):
+        """分析履歴を取得"""
+        key = f"analysis_history:{stock_code}"
+        return await redis.lrange(key, 0, limit - 1)
+    
+    async def save_user_feedback(self, user_id: str, recommendation_id: str, feedback: dict):
+        """ユーザーフィードバックを保存（学習用）"""
+        key = f"feedback:{user_id}"
+        await redis.lpush(key, json.dumps({
+            "recommendation_id": recommendation_id,
+            "feedback": feedback,
+            "timestamp": datetime.utcnow().isoformat()
+        }))
+    
+    async def get_user_context(self, user_id: str) -> UserContext:
+        """ユーザーコンテキストを取得"""
+        # 過去のフィードバック、閲覧履歴、投資パターンを統合
+        pass
+```
+
+### 21.7 AgentOps（エージェント監視）
+
+```python
+# エージェント実行の可視化・評価
+class AgentOps:
+    """
+    エージェントの実行ログ、トレース、評価を管理
+    """
+    
+    async def trace_execution(self, agent_name: str, task_id: str):
+        """実行トレース開始"""
+        trace = {
+            "agent": agent_name,
+            "task_id": task_id,
+            "start_time": datetime.utcnow(),
+            "steps": []
+        }
+        return trace
+    
+    async def log_step(self, trace_id: str, step: dict):
+        """実行ステップを記録"""
+        step["timestamp"] = datetime.utcnow()
+        await redis.lpush(f"trace:{trace_id}", json.dumps(step))
+    
+    async def log_tool_usage(self, agent_name: str, tool_name: str, duration_ms: int, success: bool):
+        """ツール使用ログ"""
+        await redis.hincrby(f"agent_stats:{agent_name}", f"tool:{tool_name}:count", 1)
+        await redis.hincrby(f"agent_stats:{agent_name}", f"tool:{tool_name}:duration", duration_ms)
+    
+    async def evaluate_recommendation(self, recommendation_id: str, user_action: str):
+        """
+        提案の効果を評価
+        user_action: "clicked" | "ignored" | "dismissed" | "acted"
+        """
+        await redis.hset(f"rec_eval:{recommendation_id}", "user_action", user_action)
+        await redis.hset(f"rec_eval:{recommendation_id}", "evaluated_at", datetime.utcnow().isoformat())
+```
+
+### 21.8 エージェント設定
+
+```yaml
+# config/agents.yml
+agents:
+  monitoring_agent:
+    enabled: true
+    schedule: "0 16 * * 1-5"  # 平日16:00
+    config:
+      price_check_interval: 300  # 5分間隔
+      alert_threshold: 5.0       # ±5%
+      volume_surge_ratio: 2.0    # 出来高2倍
+  
+  analysis_agent:
+    enabled: true
+    config:
+      max_news_items: 10
+      sentiment_threshold: 0.3
+      technical_indicators: ["sma", "ema", "rsi", "macd"]
+  
+  recommendation_agent:
+    enabled: true
+    config:
+      min_match_score: 0.7       # 通知閾値
+      max_daily_notifications: 5 # 1日最大通知数
+      cooldown_hours: 24         # 同一銘柄通知間隔
+```
+
+---
+
 ## 20. セキュリティ対策
 
 ### 20.1 対策一覧
+
+| 項目 | 対策内容 | 実装場所 |
+|---|---|---|
+| SQLインジェクション | SQLAlchemy ORM使用（パラメータ化クエリ） | DB層 |
+| XSS | React自動エスケープ + CSPヘッダー | フロント/サーバー |
+| CSRF | SameSite Cookie + CORS制限 | サーバー |
+| 認証 Bypass | JWT署名検証 + 有効期限チェック | ミドルウェア |
+| レート制限 | slowapiによるIP/エンドポイント制限 | API層 |
+| 機密情報漏洩 | .envファイル管理、ログ除外 | 設定 |
+| プッシュ通知 | VAPID認証必須 | Web Push層 |
+
+### 20.2 CSPヘッダー
+
+```python
+# app/main.py
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://your-domain.com"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://api.your-domain.com;"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    return response
+```
+
+---
+
+## 21. AIエージェントアーキテクチャ
+
+### 21.1 マルチエージェント構成
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         エージェントオーケストレーター                      │
+│                    （AgentOrchestrator - 中央制御）                        │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+           ┌────────────────────────┼────────────────────────┐
+           │                        │                        │
+           ▼                        ▼                        ▼
+┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
+│   監視エージェント   │  │   分析エージェント   │  │   提案エージェント   │
+│  (MonitoringAgent)  │  │  (AnalysisAgent)    │  │ (RecommendationAgent)│
+├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
+│ 責任: 市場・銘柄の   │  │ 責任: データ分析・   │  │ 責任: ユーザーへの   │
+│       継続的監視    │  │       洞察生成      │  │       提案・通知     │
+│                     │  │                     │  │                     │
+│ トリガー:           │  │ トリガー:           │  │ トリガー:           │
+│ - 定期的スケジュール │  │ - 監視エージェント   │  │ - 分析エージェント   │
+│ - 価格変動検知      │  │   からの依頼        │  │   からの依頼        │
+│                     │  │ - ユーザー直接依頼   │  │ - 時間ベース        │
+│                     │  │                     │  │                     │
+│ 使用ツール:         │  │ 使用ツール:         │  │ 使用ツール:         │
+│ - 株価取得          │  │ - ニュース検索      │  │ - パターンマッチング │
+│ - アラート検知      │  │ - 決算データ取得    │  │ - 通知送信          │
+│ - 閾値チェック      │  │ - テクニカル分析    │  │ - メール送信        │
+└─────────────────────┘  └─────────────────────┘  └─────────────────────┘
+           │                        │                        │
+           └────────────────────────┴────────────────────────┘
+                                    │
+                                    ▼
+                    ┌─────────────────────────────┐
+                    │        共有メモリ            │
+                    │    （Agent Shared Memory）   │
+                    │                             │
+                    │  - 監視状態                  │
+                    │  - 分析結果                  │
+                    │  - 提案履歴                  │
+                    │  - ユーザー・フィードバック   │
+                    └─────────────────────────────┘
+```
+
+### 21.2 エージェント定義
+
+#### 監視エージェント (MonitoringAgent)
+
+```python
+class MonitoringAgent(BaseAgent):
+    """
+    市場・銘柄を継続的に監視し、重要な変化を検知するエージェント
+    """
+    
+    name = "monitoring_agent"
+    description = "株価・市場の継続的監視と変化検知"
+    
+    tools = [
+        "fetch_stock_price",      # 株価取得
+        "check_price_threshold",   # 価格閾値チェック
+        "detect_volume_surge",     # 出来高急増検知
+        "detect_moving_average",   # 移動平均線検知
+        "get_market_overview",     # 市場概況取得
+    ]
+    
+    async def run(self, context: AgentContext) -> AgentResult:
+        """
+        監視ループ:
+        1. 全ウォッチリスト銘柄を取得
+        2. 各銘柄の価格・出来高を確認
+        3. 閾値超過を検知
+        4. 分析エージェントに依頼 or 直接提案エージェントに依頼
+        """
+        pass
+```
+
+#### 分析エージェント (AnalysisAgent)
+
+```python
+class AnalysisAgent(BaseAgent):
+    """
+    データを分析し、洞察を生成するエージェント
+    """
+    
+    name = "analysis_agent"
+    description = "銘柄分析・ニュース分析・技術的分析"
+    
+    tools = [
+        "search_news",            # ニュース検索
+        "fetch_financial_data",   # 決算データ取得
+        "technical_analysis",     # テクニカル分析
+        "sentiment_analysis",     # 感情分析
+        "compare_with_sector",    # セクター比較
+    ]
+    
+    async def run(self, context: AgentContext) -> AgentResult:
+        """
+        分析フロー:
+        1. 対象銘柄の基本情報取得
+        2. 関連ニュース検索・分析
+        3. 決算データ確認
+        4. テクニカル指標計算
+        5. 分析レポート生成
+        6. 提案エージェントに依頼
+        """
+        pass
+```
+
+#### 提案エージェント (RecommendationAgent)
+
+```python
+class RecommendationAgent(BaseAgent):
+    """
+    ユーザーの投資パターンに基づき、最適な提案を生成するエージェント
+    """
+    
+    name = "recommendation_agent"
+    description = "パターンマッチング・提案生成・通知送信"
+    
+    tools = [
+        "match_user_pattern",     # ユーザーパターンマッチング
+        "generate_recommendation", # 提案生成
+        "send_notification",      # 通知送信
+        "send_email",             # メール送信
+        "save_recommendation",    # 提案保存
+    ]
+    
+    async def run(self, context: AgentContext) -> AgentResult:
+        """
+        提案フロー:
+        1. ユーザーの投資パターンを取得
+        2. 分析結果とパターンを照合
+        3. マッチングスコア計算
+        4. 提案理由生成（LLM使用）
+        5. 通知送信判断
+        6. ユーザーに通知
+        """
+        pass
+```
+
+### 21.3 エージェント間通信
+
+```python
+# エージェント間メッセージ形式
+class AgentMessage(BaseModel):
+    message_id: UUID                    # メッセージID
+    from_agent: str                     # 送信元エージェント
+    to_agent: str                       # 宛先エージェント
+    message_type: MessageType           # メッセージタイプ
+    payload: dict                       # ペイロード
+    timestamp: datetime
+    priority: Priority = Priority.NORMAL # 優先度
+
+class MessageType(str, Enum):
+    REQUEST_ANALYSIS = "request_analysis"      # 分析依頼
+    REQUEST_RECOMMENDATION = "request_rec"     # 提案依頼
+    ANALYSIS_COMPLETE = "analysis_complete"    # 分析完了
+    RECOMMENDATION_READY = "rec_ready"         # 提案準備完了
+    ALERT_TRIGGERED = "alert_triggered"        # アラート発火
+    FEEDBACK_RECEIVED = "feedback_received"    # フィードバック受信
+
+# メッセージブローカー（Redis使用）
+class AgentMessageBroker:
+    async def publish(self, message: AgentMessage):
+        """メッセージを公開"""
+        await redis.publish(f"agent:{message.to_agent}", message.json())
+    
+    async def subscribe(self, agent_name: str):
+        """エージェント宛てメッセージを購読"""
+        async for message in redis.subscribe(f"agent:{agent_name}"):
+            yield AgentMessage.parse_raw(message)
+```
+
+### 21.4 エージェントツール定義
+
+| ツール名 | 説明 | 使用エージェント |
+|---|---|---|
+| `fetch_stock_price` | 指定銘柄の最新株価を取得 | 監視エージェント |
+| `check_price_threshold` | 価格が閾値を超えたかチェック | 監視エージェント |
+| `detect_volume_surge` | 出来高の急増を検知 | 監視エージェント |
+| `detect_moving_average` | 移動平均線クロスを検知 | 監視エージェント |
+| `search_news` | 銘柄関連ニュースを検索 | 分析エージェント |
+| `fetch_financial_data` | 決算データを取得 | 分析エージェント |
+| `technical_analysis` | テクニカル指標を計算 | 分析エージェント |
+| `sentiment_analysis` | ニュースの感情分析 | 分析エージェント |
+| `match_user_pattern` | ユーザー投資パターンと照合 | 提案エージェント |
+| `generate_recommendation` | LLMで提案理由を生成 | 提案エージェント |
+| `send_notification` | ブラウザプッシュ通知を送信 | 提案エージェント |
+| `save_to_memory` | 分析結果を共有メモリに保存 | 全エージェント |
+
+### 21.5 エージェントワークフロー例
+
+**シナリオ: ウォッチリスト銘柄の急騰検知**
+
+```
+[16:00 JST] Celery Beatが監視エージェントを起動
+       │
+       ▼
+┌──────────────┐
+│ 監視エージェント │
+│ ・全銘柄の価格取得 │
+│ ・前日比を計算    │
+│ ・閾値(±5%)超過を検知 │
+└──────┬───────┘
+       │ 銘柄Aが+8%上昇を検知
+       │ MessageType.ALERT_TRIGGERED
+       ▼
+┌──────────────┐
+│ 分析エージェント │ ← 依頼を受信
+│ ・銘柄Aのニュース検索 │
+│ ・決算データ確認    │
+│ ・テクニカル分析    │
+│ ・分析レポート生成  │
+└──────┬───────┘
+       │ MessageType.ANALYSIS_COMPLETE
+       ▼
+┌──────────────┐
+│ 提案エージェント │ ← 依頼を受信
+│ ・ユーザーのパターン取得 │
+│ ・マッチングスコア計算   │
+│ ・LLMで提案理由生成     │
+│ ・スコア90%超なら通知   │
+└──────┬───────┘
+       │ プッシュ通知送信
+       ▼
+┌──────────────┐
+│ ユーザーへ通知   │
+│ "銘柄Aが+8%、   │
+│  あなたの高配当 │
+│  パターンにマッチ" │
+└──────────────┘
+```
+
+### 21.6 共有メモリ（Agent Shared Memory）
+
+```python
+# エージェント間で共有する状態・履歴
+class AgentSharedMemory:
+    """
+    Redisベースの共有メモリ
+    """
+    
+    async def save_monitoring_state(self, stock_code: str, state: dict):
+        """監視状態を保存"""
+        key = f"monitoring:{stock_code}"
+        await redis.hset(key, mapping=state)
+        await redis.expire(key, 86400)  # 24時間保持
+    
+    async def get_analysis_history(self, stock_code: str, limit: int = 10):
+        """分析履歴を取得"""
+        key = f"analysis_history:{stock_code}"
+        return await redis.lrange(key, 0, limit - 1)
+    
+    async def save_user_feedback(self, user_id: str, recommendation_id: str, feedback: dict):
+        """ユーザーフィードバックを保存（学習用）"""
+        key = f"feedback:{user_id}"
+        await redis.lpush(key, json.dumps({
+            "recommendation_id": recommendation_id,
+            "feedback": feedback,
+            "timestamp": datetime.utcnow().isoformat()
+        }))
+    
+    async def get_user_context(self, user_id: str) -> UserContext:
+        """ユーザーコンテキストを取得"""
+        # 過去のフィードバック、閲覧履歴、投資パターンを統合
+        pass
+```
+
+### 21.7 AgentOps（エージェント監視）
+
+```python
+# エージェント実行の可視化・評価
+class AgentOps:
+    """
+    エージェントの実行ログ、トレース、評価を管理
+    """
+    
+    async def trace_execution(self, agent_name: str, task_id: str):
+        """実行トレース開始"""
+        trace = {
+            "agent": agent_name,
+            "task_id": task_id,
+            "start_time": datetime.utcnow(),
+            "steps": []
+        }
+        return trace
+    
+    async def log_step(self, trace_id: str, step: dict):
+        """実行ステップを記録"""
+        step["timestamp"] = datetime.utcnow()
+        await redis.lpush(f"trace:{trace_id}", json.dumps(step))
+    
+    async def log_tool_usage(self, agent_name: str, tool_name: str, duration_ms: int, success: bool):
+        """ツール使用ログ"""
+        await redis.hincrby(f"agent_stats:{agent_name}", f"tool:{tool_name}:count", 1)
+        await redis.hincrby(f"agent_stats:{agent_name}", f"tool:{tool_name}:duration", duration_ms)
+    
+    async def evaluate_recommendation(self, recommendation_id: str, user_action: str):
+        """
+        提案の効果を評価
+        user_action: "clicked" | "ignored" | "dismissed" | "acted"
+        """
+        await redis.hset(f"rec_eval:{recommendation_id}", "user_action", user_action)
+        await redis.hset(f"rec_eval:{recommendation_id}", "evaluated_at", datetime.utcnow().isoformat())
+```
+
+### 21.8 エージェント設定
+
+```yaml
+# config/agents.yml
+agents:
+  monitoring_agent:
+    enabled: true
+    schedule: "0 16 * * 1-5"  # 平日16:00
+    config:
+      price_check_interval: 300  # 5分間隔
+      alert_threshold: 5.0       # ±5%
+      volume_surge_ratio: 2.0    # 出来高2倍
+  
+  analysis_agent:
+    enabled: true
+    config:
+      max_news_items: 10
+      sentiment_threshold: 0.3
+      technical_indicators: ["sma", "ema", "rsi", "macd"]
+  
+  recommendation_agent:
+    enabled: true
+    config:
+      min_match_score: 0.7       # 通知閾値
+      max_daily_notifications: 5 # 1日最大通知数
+      cooldown_hours: 24         # 同一銘柄通知間隔
+```
+
+---
+
+## 22. 変更履歴
+
+| 日付 | バージョン | 変更内容 |
+|---|---|---|
+| 2026-03-16 | 0.1.0 | 初版作成 |
 
 | 項目 | 対策内容 | 実装場所 |
 |---|---|---|
