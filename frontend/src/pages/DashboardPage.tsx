@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import WatchlistComponent from '../components/WatchlistComponent'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -64,10 +65,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-md font-semibold mb-4">ウォッチリスト</h3>
-              <p className="text-gray-500 text-sm">銘柄を追加してください</p>
-            </div>
+            <WatchlistComponent />
           </div>
         </div>
       </main>
