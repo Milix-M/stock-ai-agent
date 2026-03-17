@@ -2,12 +2,19 @@ from celery import shared_task
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 import asyncio
 import redis.asyncio as redis
+from datetime import datetime
 
 from app.config import get_settings
 from app.services.stock_service import StockService
 from app.services.news_service import NewsService
+from app.services.financial_service import FinancialService
 from app.services.technical_service import TechnicalAnalysisService
-from app.agents import AnalysisAgent, AgentOrchestrator
+from app.agents import (
+    AnalysisAgent, 
+    AgentTools, 
+    AgentOrchestrator,
+    AgentSharedMemory
+)
 
 settings = get_settings()
 
@@ -26,12 +33,15 @@ async def run_analysis_task(stock_code: str, user_id: str = None):
         # サービス初期化
         stock_service = StockService(db)
         news_service = NewsService()
+        financial_service = FinancialService()
         technical_service = TechnicalAnalysisService()
+        tools = AgentTools(stock_service)
         
         # エージェント初期化
         agent = AnalysisAgent(
-            stock_service=stock_service,
+            tools=tools,
             news_service=news_service,
+            financial_service=financial_service,
             technical_service=technical_service
         )
         
@@ -41,23 +51,45 @@ async def run_analysis_task(stock_code: str, user_id: str = None):
         # コンテキスト構築
         context = {
             "stock_code": stock_code,
-            "user_id": user_id
+            "user_id": user_id,
         }
         
         try:
             # 分析実行
             result = await agent.execute(context)
             
-            # 結果をログ
+            # 分析結果をRedisに保存（履歴として）
+            memory = AgentSharedMemory(redis_client)
+            await memory.save_analysis_history(stock_code, {
+                "rating": result.overall_rating,
+                "confidence": result.confidence_score,
+                "summary": result.summary,
+                "date": datetime.now().isoformat()
+            })
+            
+            # 重要な分析結果があれば提案エージェントに依頼
+            if result.overall_rating in ["buy", "sell"] and result.confidence_score > 0.6:
+                await orchestrator.request_recommendation(
+                    user_id=user_id or "system",
+                    analysis_result={
+                        "stock_code": stock_code,
+                        "stock_name": result.stock_name,
+                        "rating": result.overall_rating,
+                        "confidence": result.confidence_score,
+                        "summary": result.summary,
+                        "key_points": result.key_points
+                    }
+                )
+            
             return {
                 "status": "success",
                 "stock_code": stock_code,
-                "recommendation": result.recommendation,
-                "confidence": result.confidence,
-                "summary": result.analysis_summary,
-                "signals": result.technical_signals,
+                "rating": result.overall_rating,
+                "confidence": result.confidence_score,
+                "summary": result.summary,
                 "key_points": result.key_points,
-                "risks": result.risks
+                "risks": result.risks,
+                "recommendations": result.recommendations
             }
             
         except Exception as e:
@@ -81,48 +113,17 @@ def analyze_stock_task(self, stock_code: str, user_id: str = None):
 
 
 @shared_task
-def analyze_from_alert_task(stock_code: str, alert_data: dict, user_id: str = None):
+def analyze_alerted_stocks(user_id: str, stock_codes: list):
     """
-    アラートを受けて分析実行
+    アラートが発火した銘柄を分析
     """
-    from app.agents.tools import StockAlert
+    results = []
+    for code in stock_codes:
+        result = asyncio.run(run_analysis_task(code, user_id))
+        results.append(result)
     
-    # アラートデータを復元
-    alert = StockAlert(
-        stock_code=alert_data["stock_code"],
-        stock_name=alert_data["stock_name"],
-        alert_type=alert_data["alert_type"],
-        severity=alert_data["severity"],
-        message=alert_data["message"],
-        current_value=alert_data["current_value"],
-        threshold=alert_data["threshold"]
-    )
-    
-    async def run():
-        async with AsyncSessionLocal() as db:
-            stock_service = StockService(db)
-            news_service = NewsService()
-            technical_service = TechnicalAnalysisService()
-            
-            agent = AnalysisAgent(
-                stock_service=stock_service,
-                news_service=news_service,
-                technical_service=technical_service
-            )
-            
-            orchestrator = AgentOrchestrator(redis_client)
-            
-            result = await agent.analyze_from_alert(
-                stock_code=stock_code,
-                alert=alert,
-                orchestrator=orchestrator
-            )
-            
-            return {
-                "status": "success",
-                "stock_code": stock_code,
-                "recommendation": result.recommendation,
-                "confidence": result.confidence
-            }
-    
-    return asyncio.run(run())
+    return {
+        "status": "success",
+        "analyzed_count": len(results),
+        "results": results
+    }
