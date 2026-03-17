@@ -7,6 +7,8 @@ from app.api.v1 import auth, users, stocks, patterns, watchlist, notifications, 
 from app.config import get_settings
 from app.db.session import engine
 from app.models.base import Base
+# Import models to register them with SQLAlchemy
+from app.models import User, InvestmentPattern, Stock, StockPrice, Watchlist, PushSubscription, Notification
 
 settings = get_settings()
 
