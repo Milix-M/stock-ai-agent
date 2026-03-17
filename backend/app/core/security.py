@@ -1,9 +1,10 @@
+import bcrypt
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional, Union
 
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -11,18 +12,22 @@ from app.config import get_settings
 from app.models import User
 
 settings = get_settings()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """パスワード検証"""
-    return pwd_context.verify(plain_password, hashed_password)
+    plain_bytes = plain_password.encode('utf-8')
+    hash_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(plain_bytes, hash_bytes)
 
 
 def get_password_hash(password: str) -> str:
     """パスワードハッシュ化"""
-    return pwd_context.hash(password)
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -64,8 +69,12 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
 
 async def get_user_by_id(db: AsyncSession, user_id: str) -> Optional[User]:
     """IDでユーザーを取得"""
-    result = await db.execute(select(User).where(User.id == user_id))
-    return result.scalar_one_or_none()
+    try:
+        user_uuid = uuid.UUID(user_id)
+        result = await db.execute(select(User).where(User.id == user_uuid))
+        return result.scalar_one_or_none()
+    except ValueError:
+        return None
 
 
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> Optional[User]:
