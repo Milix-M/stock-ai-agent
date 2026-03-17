@@ -12,6 +12,7 @@ celery_app = Celery(
     include=[
         "app.tasks.stock_tasks",
         "app.tasks.monitoring_tasks",
+        "app.tasks.analysis_tasks",
     ],
 )
 
