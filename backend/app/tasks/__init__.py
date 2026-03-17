@@ -13,6 +13,7 @@ celery_app = Celery(
         "app.tasks.stock_tasks",
         "app.tasks.monitoring_tasks",
         "app.tasks.analysis_tasks",
+        "app.tasks.recommendation_tasks",
     ],
 )
 
@@ -34,6 +35,10 @@ celery_app.conf.update(
         "monitor-watchlist": {
             "task": "app.tasks.monitoring_tasks.monitor_stocks_task",
             "schedule": crontab(minute="*/10", hour="9-15", day_of_week="mon-fri"),
+        },
+        "daily-recommendations": {
+            "task": "app.tasks.recommendation_tasks.generate_daily_recommendations",
+            "schedule": crontab(hour=17, minute=0, day_of_week="mon-fri"),
         },
     },
 )
