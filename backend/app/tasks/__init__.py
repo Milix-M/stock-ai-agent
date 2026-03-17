@@ -11,6 +11,7 @@ celery_app = Celery(
     backend=settings.REDIS_URL,
     include=[
         "app.tasks.stock_tasks",
+        "app.tasks.monitoring_tasks",
     ],
 )
 
@@ -23,11 +24,15 @@ celery_app.conf.update(
     beat_schedule={
         "fetch-watchlist-prices": {
             "task": "app.tasks.stock_tasks.fetch_watchlist_prices",
-            "schedule": crontab(minute="*/5", hour="9-15", day_of_week="mon-fri"),  # 平日9-15時、5分ごと
+            "schedule": crontab(minute="*/5", hour="9-15", day_of_week="mon-fri"),
         },
         "fetch-all-prices": {
             "task": "app.tasks.stock_tasks.fetch_daily_stock_prices",
-            "schedule": crontab(hour=16, minute=0, day_of_week="mon-fri"),  # 平日16:00
+            "schedule": crontab(hour=16, minute=0, day_of_week="mon-fri"),
+        },
+        "monitor-watchlist": {
+            "task": "app.tasks.monitoring_tasks.monitor_stocks_task",
+            "schedule": crontab(minute="*/10", hour="9-15", day_of_week="mon-fri"),
         },
     },
 )
