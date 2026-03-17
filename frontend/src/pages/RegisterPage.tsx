@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const navigate = useNavigate()
-  const { login, error, clearError, isLoading } = useAuthStore()
+  const { register, error, clearError, isLoading } = useAuthStore()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    displayName: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -15,7 +16,7 @@ export default function LoginPage() {
     clearError()
     
     try {
-      await login(formData.email, formData.password)
+      await register(formData.email, formData.password, formData.displayName)
       navigate('/dashboard')
     } catch {
       // エラーはストアで処理
@@ -25,7 +26,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-        <h2 className="text-2xl font-bold text-center mb-6">ログイン</h2>
+        <h2 className="text-2xl font-bold text-center mb-6">新規登録</h2>
         
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
@@ -59,6 +60,20 @@ export default function LoginPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
               required
+              minLength={8}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              表示名（任意）
+            </label>
+            <input
+              type="text"
+              value={formData.displayName}
+              onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="ユーザー名"
             />
           </div>
           
@@ -67,13 +82,13 @@ export default function LoginPage() {
             disabled={isLoading}
             className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'ログイン中...' : 'ログイン'}
+            {isLoading ? '登録中...' : '登録'}
           </button>
         </form>
         
         <p className="mt-4 text-center text-sm text-gray-600">
-          アカウントをお持ちでない方は
-          <a href="/register" className="text-blue-600 hover:underline">新規登録</a>
+          すでにアカウントをお持ちの方は
+          <a href="/login" className="text-blue-600 hover:underline">ログイン</a>
         </p>
       </div>
     </div>

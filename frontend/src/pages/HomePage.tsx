@@ -1,4 +1,17 @@
+import { useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../stores/authStore'
+
 export default function HomePage() {
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuthStore()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard')
+    }
+  }, [isAuthenticated, navigate])
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="text-center">
@@ -9,18 +22,18 @@ export default function HomePage() {
           AIが株価を監視し、あなたの投資パターンに合った銘柄を提案
         </p>
         <div className="space-x-4">
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition"
           >
             ログイン
-          </a>
-          <a
-            href="/dashboard"
+          </Link>
+          <Link
+            to="/register"
             className="inline-block bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-gray-300 transition"
           >
-            ダッシュボード（仮）
-          </a>
+            新規登録
+          </Link>
         </div>
       </div>
     </div>
