@@ -32,11 +32,55 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
     if (result) {
       // 自動的に名前を生成
       if (!name) {
-        const keywords = result.parsed.keywords?.join('・') || 'カスタム'
-        setName(`${keywords}パターン`)
+        const autoName = generatePatternName(result.parsed)
+        setName(autoName)
       }
       setStep(2)
     }
+  }
+
+  const generatePatternName = (parsed: any): string => {
+    const filters = parsed.filters || {}
+    const sectors = parsed.sectors || []
+    const strategy = parsed.strategy || 'hybrid'
+    
+    const parts: string[] = []
+    
+    // 戦略に基づく接頭辞
+    const strategyLabels: Record<string, string> = {
+      dividend_focus: '高配当',
+      growth: '成長',
+      value: '割安',
+      technical: 'テクニカル',
+      hybrid: '複合'
+    }
+    
+    if (strategyLabels[strategy]) {
+      parts.push(strategyLabels[strategy])
+    }
+    
+    // セクター情報
+    if (sectors.length > 0) {
+      parts.push(sectors[0])
+    }
+    
+    // 主要な条件を追加
+    if (filters.per_max !== undefined && filters.per_max <= 20) {
+      parts.push(`PER${filters.per_max}倍以下`)
+    }
+    if (filters.dividend_yield_min !== undefined && filters.dividend_yield_min >= 2) {
+      parts.push(`配当${filters.dividend_yield_min}%以上`)
+    }
+    if (filters.pbr_max !== undefined && filters.pbr_max <= 2) {
+      parts.push(`PBR${filters.pbr_max}倍以下`)
+    }
+    
+    // 名前が空の場合はデフォルト
+    if (parts.length === 0) {
+      return 'カスタムパターン'
+    }
+    
+    return parts.join('・') + 'パターン'
   }
 
   const handleCreate = async () => {
