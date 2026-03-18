@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { usePatternStore } from '../stores/patternStore'
+import { useRecommendationStore } from '../stores/recommendationStore'
 import PatternCreateModal from './PatternCreateModal'
 
 export default function PatternList() {
   const { patterns, isLoading, error, fetchPatterns, deletePattern, togglePattern, clearError } = usePatternStore()
+  const { fetchRecommendations } = useRecommendationStore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -20,6 +22,15 @@ export default function PatternList() {
     } finally {
       setDeletingId(null)
     }
+  }
+
+  const handleCreateSuccess = async () => {
+    // パターンリストを更新
+    await fetchPatterns()
+    // レコメンドを更新（少し遅延させてバックエンドの処理完了を待つ）
+    setTimeout(() => {
+      fetchRecommendations()
+    }, 1000)
   }
 
   const getStrategyLabel = (strategy?: string) => {
@@ -135,7 +146,7 @@ export default function PatternList() {
       <PatternCreateModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={() => fetchPatterns()}
+        onSuccess={handleCreateSuccess}
       />
     </>
   )

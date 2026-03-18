@@ -51,7 +51,7 @@ async def create_pattern(
     current_user = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """投資パターンを作成"""
+    """投資パターンを作成し、即座にマッチング・レコメンドを生成"""
     service = PatternService(db)
     
     try:
@@ -62,6 +62,16 @@ async def create_pattern(
             raw_input=request.raw_input,
             parsed_filters=request.parsed_filters
         )
+        
+        # パターン作成後、即座にレコメンド生成（バックグラウンドで非同期実行）
+        import asyncio
+        from app.tasks.recommendation_tasks import generate_recommendations_for_pattern
+        
+        # 非同期でレコメンド生成（ユーザー応答を待たない）
+        asyncio.create_task(
+            generate_recommendations_for_pattern(str(current_user.id), str(pattern.id))
+        )
+        
         return pattern
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
