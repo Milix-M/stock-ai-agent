@@ -69,14 +69,19 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                         score += 1
                         matched.append(f"PBR: {price_data['pbr']:.1f}倍")
                 
-                # 配当利回り評価
+                # 配当利回り評価（yfinanceは%単位で返すことがあるため、適切に処理）
                 if "dividend_yield_min" in filters and price_data.get("dividend_yield"):
-                    if price_data["dividend_yield"] >= filters["dividend_yield_min"]:
+                    # yfinanceは配当利回りを%単位（例：2.5）または配当額で返す場合がある
+                    dividend_yield = price_data["dividend_yield"]
+                    # 100以上の値は配当額とみなして利回りに変換（概算）
+                    if dividend_yield > 100:
+                        dividend_yield = (dividend_yield / price_data.get("current_price", 1)) * 100
+                    if dividend_yield >= filters["dividend_yield_min"]:
                         score += 1
-                        matched.append(f"配当: {price_data['dividend_yield']:.1f}%")
+                        matched.append(f"配当: {dividend_yield:.1f}%")
                 
-                # スコアが高い場合はレコメンド
-                if score >= 2:
+                # スコアが1以上あればレコメンド（条件が少ないパターンにも対応）
+                if score >= 1:
                     stock_info = await stock_search_service.get_stock_info(code)
                     results.append({
                         "stock_code": code,
