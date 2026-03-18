@@ -14,6 +14,9 @@ export default function RecommendationList() {
     return 'text-gray-600 bg-gray-100'
   }
 
+  // null/undefined対策
+  const safeRecommendations = recommendations || []
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-4">
@@ -27,11 +30,11 @@ export default function RecommendationList() {
         </button>
       </div>
 
-      {isLoading && recommendations.length === 0 ? (
+      {isLoading && safeRecommendations.length === 0 ? (
         <div className="text-center py-8">読み込み中...</div>
       ) : error ? (
         <div className="text-center py-8 text-red-600">{error}</div>
-      ) : recommendations.length === 0 ? (
+      ) : safeRecommendations.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500">
             レコメンドがありません。
@@ -42,7 +45,7 @@ export default function RecommendationList() {
         </div>
       ) : (
         <div className="space-y-4">
-          {recommendations.map((rec, idx) => (
+          {safeRecommendations.map((rec, idx) => (
             <div
               key={`${rec.stock_code}-${idx}`}
               className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
