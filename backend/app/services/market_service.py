@@ -62,26 +62,19 @@ class MarketService:
         return None
     
     async def get_topix(self) -> Optional[Dict[str, Any]]:
-        """TOPIXを取得（日経平均から換算）"""
-        # TOPIXはyfinanceで直接取得できない
-        # 日経平均の変動率から概算
-        nikkei_data = await self._fetch_with_delay('^N225')
+        """TOPIXを取得（1306.T ETFから）"""
+        # TOPIX指数はyfinanceで直接取得できない
+        # 1306.T = TOPIX連動型ETF
+        data = await self._fetch_with_delay('1306.T')
         
-        if nikkei_data:
-            # TOPIXの概算値（日経平均と相関が高い）
-            base_topix = 2550  # 基準値
-            change_percent = nikkei_data['change_percent']
-            current = base_topix * (1 + change_percent / 100)
-            change = current - base_topix
-            
+        if data:
             return {
                 'name': 'TOPIX',
                 'code': 'TOPX',
-                'current': round(current, 2),
-                'change': round(change, 2),
-                'change_percent': change_percent,
-                'volume': nikkei_data.get('volume', 0),
-                'note': '日経平均から推定'
+                'current': data['current'],
+                'change': data['change'],
+                'change_percent': data['change_percent'],
+                'volume': data['volume'],
             }
         return None
     
