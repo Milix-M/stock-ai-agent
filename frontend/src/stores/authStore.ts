@@ -53,8 +53,13 @@ export const useAuthStore = create<AuthState>()(
           const user = await authApi.getCurrentUser()
           set({ user, isAuthenticated: true, isLoading: false })
         } catch (error: any) {
+          console.error('Registration error:', error)
+          const errorMessage = error.response?.data?.detail 
+            || error.response?.data?.message 
+            || error.message 
+            || '登録に失敗しました'
           set({
-            error: error.response?.data?.detail || '登録に失敗しました',
+            error: errorMessage,
             isLoading: false,
           })
           throw error
