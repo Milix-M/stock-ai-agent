@@ -62,20 +62,9 @@ class MarketService:
         return None
     
     async def get_topix(self) -> Optional[Dict[str, Any]]:
-        """TOPIXを取得（1306.T ETFから）"""
-        # TOPIX指数はyfinanceで直接取得できない
-        # 1306.T = TOPIX連動型ETF
-        data = await self._fetch_with_delay('1306.T')
-        
-        if data:
-            return {
-                'name': 'TOPIX',
-                'code': 'TOPX',
-                'current': data['current'],
-                'change': data['change'],
-                'change_percent': data['change_percent'],
-                'volume': data['volume'],
-            }
+        """TOPIXを取得（非対応）"""
+        # yfinanceでTOPIX指数は取得不可
+        # 1306.T ETFはあるが、指数そのものではないため非対応とする
         return None
     
     async def get_dow_jones(self) -> Optional[Dict[str, Any]]:
