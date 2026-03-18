@@ -12,6 +12,7 @@ export default function MarketOverview() {
     dow_jones: null,
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [isFallback, setIsFallback] = useState(false)
 
   useEffect(() => {
     fetchMarketData()
@@ -24,6 +25,7 @@ export default function MarketOverview() {
     try {
       const data = await marketApi.getMarketOverview()
       setIndices(data.indices)
+      setIsFallback(data.data_source === 'yahoo_fallback')
     } catch (error) {
       console.error('Failed to fetch market data:', error)
     } finally {
@@ -115,6 +117,7 @@ export default function MarketOverview() {
       
       <p className="text-xs text-gray-400 mt-3">
         ※ 30秒ごとに自動更新
+        {isFallback && <span className="ml-1 text-yellow-600">(デモデータ)</span>}
       </p>
     </div>
   )
