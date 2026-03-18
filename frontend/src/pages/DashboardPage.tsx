@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import WatchlistComponent from '../components/WatchlistComponent'
 import PatternList from '../components/PatternList'
+import RecommendationList from '../components/RecommendationList'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -40,10 +41,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold mb-4">本日のレコメンド</h2>
-              <p className="text-gray-500">レコメンド機能は開発中です...</p>
-            </div>
+            <RecommendationList />
 
             <PatternList />
           </div>
