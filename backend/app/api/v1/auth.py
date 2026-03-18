@@ -11,7 +11,7 @@ from app.core.security import (
     get_user_by_email,
     decode_token,
 )
-from app.schemas import RegisterRequest, Token, LoginRequest
+from app.schemas import RegisterRequest, Token, LoginRequest, RefreshTokenRequest
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -99,24 +99,24 @@ async def login_json(
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
-    refresh_token: str,
+    request: RefreshTokenRequest,
     db: AsyncSession = Depends(get_db)
 ):
     """トークンリフレッシュ"""
-    payload = decode_token(refresh_token)
+    payload = decode_token(request.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token"
         )
-    
+
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload"
         )
-    
+
     # ユーザー存在確認
     from app.core.security import get_user_by_id
     user = await get_user_by_id(db, user_id)
@@ -125,11 +125,11 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found"
         )
-    
+
     # 新しいトークン生成
     new_access_token = create_access_token(data={"sub": str(user.id)})
     new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
+
     return {
         "access_token": new_access_token,
         "refresh_token": new_refresh_token,

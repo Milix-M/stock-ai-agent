@@ -55,6 +55,10 @@ class RegisterRequest(BaseModel):
     display_name: Optional[str] = None
 
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
 # ==================== Pattern Schemas ====================
 
 class PatternBase(BaseModel):
