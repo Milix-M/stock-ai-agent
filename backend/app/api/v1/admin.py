@@ -15,11 +15,17 @@ async def seed_database(
 ):
     """
     開発用: データベースに銘柄データをシード
+    既にデータがある場合はエラー
     """
-    # 簡易的な管理者チェック（実際の運用では適切な権限管理が必要）
-    import os
-    
     stock_service = StockService(db)
+    
+    # 既存銘柄数をチェック
+    existing_stocks = await stock_service.get_all_stocks()
+    if len(existing_stocks) >= 5:  # 5件以上あればセットアップ済みと判断
+        raise HTTPException(
+            status_code=400, 
+            detail="Database already seeded. Stock data already exists."
+        )
     
     # モック銘柄データ
     mock_stocks = [
@@ -62,4 +68,19 @@ async def seed_database(
         "created": created,
         "skipped": skipped,
         "total": len(mock_stocks)
+    }
+
+
+@router.get("/status")
+async def get_setup_status(
+    current_user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """セットアップ状態を確認"""
+    stock_service = StockService(db)
+    stocks = await stock_service.get_all_stocks()
+    
+    return {
+        "is_seeded": len(stocks) >= 5,
+        "stock_count": len(stocks)
     }

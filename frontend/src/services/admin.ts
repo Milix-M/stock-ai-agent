@@ -5,4 +5,9 @@ export const adminApi = {
     const response = await api.post('/admin/seed')
     return response.data
   },
+
+  getSetupStatus: async (): Promise<{ is_seeded: boolean; stock_count: number }> => {
+    const response = await api.get('/admin/status')
+    return response.data
+  },
 }
