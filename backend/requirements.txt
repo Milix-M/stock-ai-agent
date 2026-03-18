@@ -35,7 +35,7 @@ pydantic-ai==0.0.20
 openai>=1.59.0
 
 # Stock Data
-yfinance==0.2.50
+yfinance>=0.2.59
 
 # Utilities
 python-dotenv==1.0.1
