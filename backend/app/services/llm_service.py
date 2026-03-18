@@ -52,6 +52,7 @@ class LLMService:
                 "price_change_min": float or null,
                 "price_change_max": float or null
             },
+            "sectors": ["業種1", "業種2"],  // 言及された業種・セクター
             "sort_by": "per|pbr|dividend_yield|market_cap|price_change",
             "sort_order": "asc|desc",
             "keywords": [抽出したキーワード]
@@ -61,7 +62,11 @@ class LLMService:
         - 数値は必ず数値型で出力（文字列ではない）
         - 単位は削除（"倍"、"%"、"円"など）
         - 不明な条件はnull
-        - 日本語の市場名は英語に変換（"東証プライム" → "prime"）
+        - "銀行株"、"銀行セクター"などと言及された場合、sectorsに"銀行"を追加
+        - "製薬"、"医薬品"、"バイオ"などと言及された場合、sectorsに"医薬品"を追加
+        - "IT"、"テクノロジー"、"半導体"などと言及された場合、sectorsに"電気機器"を追加
+        - "食品"、"飲料"などと言及された場合、sectorsに"食料品"を追加
+        - "商社"、"卸売"などと言及された場合、sectorsに"卸売"を追加
         """
         
         try:
@@ -96,6 +101,7 @@ class LLMService:
         """LLM失敗時のフォールバック解析"""
         filters = {}
         keywords = []
+        sectors = []
         
         # 簡易的なキーワード抽出
         text = user_input.lower()
@@ -116,6 +122,32 @@ class LLMService:
                 filters["dividend_yield_min"] = int(div_matches[0])
                 keywords.append("高配当")
         
+        # セクター抽出
+        if any(word in user_input for word in ["銀行", "金融", "銀行株"]):
+            sectors.append("銀行")
+            keywords.append("銀行")
+        if any(word in user_input for word in ["医薬品", "製薬", "バイオ", "薬"]):
+            sectors.append("医薬品")
+            keywords.append("医薬品")
+        if any(word in user_input for word in ["IT", "テクノロジー", "半導体", "電子", "電機"]):
+            sectors.append("電気機器")
+            keywords.append("電気機器")
+        if any(word in user_input for word in ["食品", "飲料", "食料"]):
+            sectors.append("食料品")
+            keywords.append("食料品")
+        if any(word in user_input for word in ["商社", "卸売", "貿易"]):
+            sectors.append("卸売")
+            keywords.append("商社")
+        if any(word in user_input for word in ["鉄道", "交通", "運輸"]):
+            sectors.append("鉄道・バス")
+            keywords.append("鉄道")
+        if any(word in user_input for word in ["保険", "生保", "損保"]):
+            sectors.append("保険")
+            keywords.append("保険")
+        if any(word in user_input for word in ["自動車", "車", "トヨタ", "ホンダ"]):
+            sectors.append("輸送用機器")
+            keywords.append("自動車")
+        
         # 戦略判定
         strategy = "hybrid"
         if "配当" in user_input:
@@ -128,6 +160,7 @@ class LLMService:
         return {
             "strategy": strategy,
             "filters": filters,
+            "sectors": sectors,
             "sort_by": "dividend_yield" if strategy == "dividend_focus" else "per",
             "sort_order": "asc" if strategy == "value" else "desc",
             "keywords": keywords

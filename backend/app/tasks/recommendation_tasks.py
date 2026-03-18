@@ -10,6 +10,7 @@ import redis.asyncio as redis
 from app.config import get_settings
 from app.services.stock_search_service import StockSearchService
 from app.services.pattern_service import PatternService
+from app.services.watchlist_service import WatchlistService
 from app.services.recommendation_service import PatternMatcher
 from app.services.notification_service import NotificationService, NotificationPayload
 from app.agents import AgentSharedMemory
@@ -29,23 +30,55 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
     """
     特定のパターンでレコメンドを生成
     パターン作成時に即座に実行
+    検索順位: ウォッチリスト > セクター一致 > 人気銘柄
     """
     async with AsyncSessionLocal() as db:
         # サービス初期化
         pattern_service = PatternService(db)
         stock_search_service = StockSearchService()
+        watchlist_service = WatchlistService(db)
         
         # パターン取得
         pattern = await pattern_service.get_pattern_by_id(pattern_id)
         if not pattern:
             return {"status": "error", "message": "Pattern not found"}
         
-        # 人気銘柄リストからマッチング
-        # TODO: 本当は全銘柄から検索するが、パフォーマンスのため人気銘柄のみ
-        popular_codes = [s["code"] for s in stock_search_service._popular_stocks]
+        # 検索対象銘柄を構築（優先順位付き）
+        target_codes = []
+        
+        # 1. ウォッチリスト銘柄（最優先）
+        watchlist_codes = await watchlist_service.get_watchlist_codes(user_id)
+        target_codes.extend(watchlist_codes)
+        
+        # 2. パターンからセクター情報を抽出
+        filters = pattern.parsed_filters.get("filters", {})
+        target_sectors = filters.get("sectors", [])  # パターンに含まれる業種
+        
+        # 3. セクターに基づいて銘柄を追加
+        if target_sectors:
+            sector_codes = [
+                s["code"] for s in stock_search_service._popular_stocks
+                if s.get("sector") in target_sectors and s["code"] not in target_codes
+            ]
+            target_codes.extend(sector_codes)
+        
+        # 4. 人気銘柄をフォールバックとして追加
+        popular_codes = [
+            s["code"] for s in stock_search_service._popular_stocks
+            if s["code"] not in target_codes
+        ]
+        target_codes.extend(popular_codes)
+        
+        # 重複排除（順序保持）
+        seen = set()
+        unique_codes = []
+        for code in target_codes:
+            if code not in seen:
+                seen.add(code)
+                unique_codes.append(code)
         
         results = []
-        for code in popular_codes:
+        for code in unique_codes:
             try:
                 # 株価データ取得
                 price_data = await stock_search_service.get_price_data(code)
