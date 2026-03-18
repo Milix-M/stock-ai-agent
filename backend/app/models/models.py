@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import String, Boolean, DateTime, Text, Numeric, BigInteger, ForeignKey, JSON
+from sqlalchemy import String, Boolean, DateTime, Text, Numeric, BigInteger, ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -98,21 +98,25 @@ class StockPrice(Base):
 
 
 class Watchlist(Base):
-    """ウォッチリストモデル"""
+    """ウォッチリストモデル - 銘柄コードのみ保存"""
     __tablename__ = "watchlists"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    stock_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stocks.id"), nullable=False)
+    stock_code: Mapped[str] = mapped_column(String(20), nullable=False)
     alert_threshold: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    # ユニーク制約: ユーザー×銘柄コード
+    __table_args__ = (
+        UniqueConstraint('user_id', 'stock_code', name='uix_user_stock_code'),
+    )
+
     # リレーションシップ
     user: Mapped["User"] = relationship(back_populates="watchlists")
-    stock: Mapped["Stock"] = relationship(back_populates="watchlists")
 
     def __repr__(self) -> str:
-        return f"<Watchlist(user={self.user_id}, stock={self.stock_id})>"
+        return f"<Watchlist(user={self.user_id}, stock_code={self.stock_code})>"
 
 
 class PushSubscription(Base):

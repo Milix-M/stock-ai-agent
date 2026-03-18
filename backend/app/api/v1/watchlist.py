@@ -1,54 +1,81 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import UUID
 
 from app.db.session import get_db
 from app.api.v1.users import get_current_user
 from app.services.watchlist_service import WatchlistService
-from app.services.stock_service import StockService
-from app.schemas import WatchlistResponse, WatchlistCreate
+from app.services.stock_search_service import StockSearchService
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[WatchlistResponse])
+@router.get("/")
 async def get_watchlist(
     current_user = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """ウォッチリスト一覧を取得"""
-    service = WatchlistService(db)
-    watchlist = await service.get_user_watchlist(str(current_user.id))
-    return watchlist
+    """ウォッチリストを取得（リアルタイム株価付き）"""
+    watchlist_service = WatchlistService(db)
+    stock_search_service = StockSearchService()
+    
+    # DBからウォッチリスト取得（コードのみ）
+    watchlist_codes = await watchlist_service.get_watchlist_codes(str(current_user.id))
+    
+    # 各銘柄のリアルタイムデータを取得
+    results = []
+    for code in watchlist_codes:
+        # 銘柄情報取得
+        info = await stock_search_service.get_stock_info(code)
+        # 株価取得
+        price = await stock_search_service.get_price_data(code)
+        
+        if info:
+            results.append({
+                "stock_code": code,
+                "stock_name": info.name,
+                "market": info.market,
+                "sector": info.sector,
+                "current_price": price.get("current_price") if price else None,
+                "change_percent": price.get("change_percent") if price else None,
+                "per": price.get("per") if price else None,
+                "pbr": price.get("pbr") if price else None,
+                "dividend_yield": price.get("dividend_yield") if price else None,
+            })
+    
+    return results
 
 
-@router.post("/", response_model=WatchlistResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/")
 async def add_to_watchlist(
-    request: WatchlistCreate,
+    request: dict,  # { "stock_code": "7203" }
     current_user = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """ウォッチリストに追加"""
-    service = WatchlistService(db)
+    """ウォッチリストに追加（コードのみ保存）"""
+    watchlist_service = WatchlistService(db)
+    stock_search_service = StockSearchService()
     
-    # 銘柄存在確認
-    stock_service = StockService(db)
-    stock = await stock_service.get_stock_by_code(request.stock_id)
-    if not stock:
+    stock_code = request.get("stock_code")
+    if not stock_code:
+        raise HTTPException(status_code=400, detail="stock_code is required")
+    
+    # 銘柄存在確認（API経由）
+    info = await stock_search_service.get_stock_info(stock_code)
+    if not info:
         raise HTTPException(status_code=404, detail="Stock not found")
     
+    # 追加
     try:
-        watchlist = await service.add_to_watchlist(
+        await watchlist_service.add_to_watchlist(
             user_id=str(current_user.id),
-            stock_id=str(stock.id),
-            alert_threshold=request.alert_threshold
+            stock_code=stock_code
         )
-        
-        # リレーションを明示的に読み込む
-        await db.refresh(watchlist, ['stock'])
-        
-        return watchlist
+        return {
+            "message": "Added to watchlist",
+            "stock_code": stock_code,
+            "stock_name": info.name
+        }
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
@@ -60,18 +87,11 @@ async def remove_from_watchlist(
     db: AsyncSession = Depends(get_db)
 ):
     """ウォッチリストから削除"""
-    service = WatchlistService(db)
-    stock_service = StockService(db)
+    watchlist_service = WatchlistService(db)
     
-    # 銘柄取得
-    stock = await stock_service.get_stock_by_code(stock_code)
-    if not stock:
-        raise HTTPException(status_code=404, detail="Stock not found")
-    
-    # 削除実行
-    success = await service.remove_from_watchlist(
+    success = await watchlist_service.remove_from_watchlist(
         user_id=str(current_user.id),
-        stock_id=str(stock.id)
+        stock_code=stock_code
     )
     
     if not success:
@@ -87,16 +107,11 @@ async def check_watchlist(
     db: AsyncSession = Depends(get_db)
 ):
     """ウォッチリストに含まれているかチェック"""
-    service = WatchlistService(db)
-    stock_service = StockService(db)
+    watchlist_service = WatchlistService(db)
     
-    stock = await stock_service.get_stock_by_code(stock_code)
-    if not stock:
-        return {"in_watchlist": False}
-    
-    is_in = await service.is_in_watchlist(
+    is_in = await watchlist_service.is_in_watchlist(
         user_id=str(current_user.id),
-        stock_id=str(stock.id)
+        stock_code=stock_code
     )
     
     return {"in_watchlist": is_in}
