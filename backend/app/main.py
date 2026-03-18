@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth, users, stocks, patterns, watchlist, notifications, recommendations, admin
+from app.api.v1 import auth, users, stocks, patterns, watchlist, notifications, recommendations, admin, market
 from app.config import get_settings
 from app.db.session import engine
 from app.models.base import Base
@@ -58,6 +58,7 @@ app.include_router(watchlist.router, prefix="/api/v1/watchlist", tags=["ウォ�
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["通知"])
 app.include_router(recommendations.router, prefix="/api/v1/recommendations", tags=["レコメンド"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["管理"])
+app.include_router(market.router, prefix="/api/v1/market", tags=["マーケット"])
 
 
 if __name__ == "__main__":

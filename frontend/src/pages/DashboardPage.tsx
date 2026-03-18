@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore'
 import WatchlistComponent from '../components/WatchlistComponent'
 import PatternList from '../components/PatternList'
 import RecommendationList from '../components/RecommendationList'
+import MarketOverview from '../components/MarketOverview'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -47,15 +48,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-md font-semibold mb-4">マーケット概況</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">日経平均</span>
-                  <span className="font-medium">-（実装中）</span>
-                </div>
-              </div>
-            </div>
+            <MarketOverview />
 
             <WatchlistComponent />
           </div>
