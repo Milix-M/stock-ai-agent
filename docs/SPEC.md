@@ -38,11 +38,11 @@
 #### 2.1.3 株価データ収集・分析
 | ID | 機能名 | 説明 | 優先度 |
 |---|---|---|---|
-| F-008 | 株価自動取得 | 定期的に株価データを取得・保存 | 高 |
+| F-008 | 株価自動取得 | 定期的に株価データを取得・保存（yfinance使用、3秒間隔制限対応） | 高 |
 | F-009 | 変動検知 | 前日比・前週比の閾値超過を検出 | 高 |
 | F-010 | 出来高急増検知 | 出来高の異常値を検出 | 中 |
 | F-011 | 移動平均線検知 | ゴールデン/デッドクロス検出 | 中 |
-| F-012 | 「オトク」判定 | AI + ルールベースで投資適性を判定 | 高 |
+| F-012 | 「オトク」判定 | AI + ルールベースで投資適性を判定（ウォッチリスト優先、セクター絞り込み対応） | 高 |
 
 #### 2.1.4 通知機能
 | ID | 機能名 | 説明 | 優先度 |
@@ -54,7 +54,7 @@
 #### 2.1.5 レコメンデーション
 | ID | 機能名 | 説明 | 優先度 |
 |---|---|---|---|
-| F-016 | AIレコメンド | ユーザーパターンに基づく銘柄提案 | 高 |
+| F-016 | AIレコメンド | ユーザーパターンに基づく銘柄提案（検索順位: ウォッチリスト→セクター一致→人気銘柄） | 高 |
 | F-017 | レコメンド理由表示 | なぜその銘柄かの説明 | 中 |
 
 ---
@@ -122,7 +122,7 @@
 | **タスクキュー** | Celery + Redis | 定期実行、非同期処理 |
 | **AIエージェント** | PydanticAI | 型安全なエージェント実装 |
 | **エージェント連携** | 独自実装 (Redis Pub/Sub) | マルチエージェント通信 |
-| **株価API** | yfinance / Alpha Vantage | 開発/本番切り替え |
+| **株価API** | yfinance / Alpha Vantage | 開発/本番切り替え（yfinanceは3秒間隔制限あり） |
 | **LLM** | OpenAI API / OpenRouter | 設定で切り替え |
 | **Web Push** | pywebpush + VAPID | 標準Web Push API |
 | **認証** | JWT (PyJWT) | アクセス/リフレッシュトークン |
@@ -220,7 +220,7 @@
 | name | VARCHAR(100) | NOT NULL | パターン名 |
 | description | TEXT | | 説明 |
 | raw_input | TEXT | NOT NULL | 自然言語入力原文 |
-| parsed_filters | JSONB | NOT NULL | LLM解析結果 |
+| parsed_filters | JSONB | NOT NULL | LLM解析結果（strategy, filters, sectors, sort_by, sort_order） |
 | is_active | BOOLEAN | DEFAULT true | 有効フラグ |
 | created_at | TIMESTAMP | NOT NULL | 作成日時 |
 | updated_at | TIMESTAMP | NOT NULL | 更新日時 |
@@ -360,10 +360,11 @@
     "strategy": "dividend_focus",
     "filters": {
       "per_max": 15,
-      "dividend_yield_min": 3,
-      "sort_by": "dividend_yield",
-      "sort_order": "desc"
+      "dividend_yield_min": 3
     },
+    "sectors": [],
+    "sort_by": "dividend_yield",
+    "sort_order": "desc",
     "keywords": ["高配当", "割安"]
   }
 }
@@ -393,13 +394,21 @@
   "description": "高配当で割安な銘柄",
   "raw_input": "高配当株でPER15倍以下、配当利回り3%以上",
   "parsed_filters": {
-    "per_max": 15,
-    "dividend_yield_min": 3
+    "strategy": "dividend_focus",
+    "filters": {
+      "per_max": 15,
+      "dividend_yield_min": 3
+    },
+    "sectors": [],
+    "sort_by": "dividend_yield",
+    "sort_order": "desc"
   },
   "is_active": true,
   "created_at": "2026-03-16T12:00:00Z"
 }
 ```
+
+**備考**: パターン作成後、バックグラウンドで即座にレコメンドが生成される。
 
 ---
 
@@ -596,7 +605,7 @@
 │  ┌────────────────────────┐  ┌──────────────────────────┐ │
 │  │ 【マーケット概況】      │  │ 【急騰・急落銘柄】        │ │
 │  │ 日経平均: +1.2%        │  │ ・銘柄A +8.5%            │ │
-│  │ TOPIX: +0.8%           │  │ ・銘柄B -5.2%            │ │
+│  │ NYダウ: -0.5%          │  │ ・銘柄B -5.2%            │ │
 │  │                        │  │                          │ │
 │  └────────────────────────┘  └──────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
@@ -2452,6 +2461,7 @@ for alert in result.data.alerts:  # IDEで補完効く
 | 日付 | バージョン | 変更内容 |
 |---|---|---|
 | 2026-03-16 | 0.1.0 | 初版作成 |
+| 2026-03-18 | 0.2.0 | 以下の変更を反映：<br>- マーケットデータ: TOPIX削除（日経平均・NYダウのみ）<br>- レコメンド生成: ウォッチリスト優先＋セクターベース検索<br>- 投資パターン: `sectors`フィールド追加<br>- yfinance: 3秒間隔制限対策、429エラー回避<br>- パターン作成後: 即座にレコメンド生成 |
 
 | 項目 | 対策内容 | 実装場所 |
 |---|---|---|
