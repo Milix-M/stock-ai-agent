@@ -4,11 +4,9 @@ import { marketApi, MarketIndex } from '../services/market'
 export default function MarketOverview() {
   const [indices, setIndices] = useState<{
     nikkei_225: MarketIndex | null
-    topix: MarketIndex | null
     dow_jones: MarketIndex | null
   }>({
     nikkei_225: null,
-    topix: null,
     dow_jones: null,
   })
   const [isLoading, setIsLoading] = useState(true)
@@ -90,7 +88,6 @@ export default function MarketOverview() {
         <div className="space-y-3">
           <div className="h-12 bg-gray-100 rounded animate-pulse"></div>
           <div className="h-12 bg-gray-100 rounded animate-pulse"></div>
-          <div className="h-12 bg-gray-100 rounded animate-pulse"></div>
         </div>
       </div>
     )
@@ -111,7 +108,6 @@ export default function MarketOverview() {
       
       <div className="space-y-2">
         {renderIndex(indices.nikkei_225, '日経平均')}
-        {renderIndex(indices.topix, 'TOPIX')}
         {renderIndex(indices.dow_jones, 'NYダウ')}
       </div>
       

@@ -61,12 +61,6 @@ class MarketService:
             }
         return None
     
-    async def get_topix(self) -> Optional[Dict[str, Any]]:
-        """TOPIXを取得（非対応）"""
-        # yfinanceでTOPIX指数は取得不可
-        # 1306.T ETFはあるが、指数そのものではないため非対応とする
-        return None
-    
     async def get_dow_jones(self) -> Optional[Dict[str, Any]]:
         """NYダウを取得"""
         data = await self._fetch_with_delay('^DJI')
@@ -83,13 +77,11 @@ class MarketService:
         """マーケット概況を一括取得（順次実行）"""
         # 順番に取得（同時リクエストを避ける）
         nikkei = await self.get_nikkei_225()
-        topix = await self.get_topix()
         dow = await self.get_dow_jones()
         
         return {
             'indices': {
                 'nikkei_225': nikkei,
-                'topix': topix,
                 'dow_jones': dow,
             },
             'updated_at': datetime.now().isoformat(),

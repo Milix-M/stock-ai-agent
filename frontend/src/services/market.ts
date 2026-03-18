@@ -15,10 +15,10 @@ export interface MarketIndex {
 export interface MarketOverview {
   indices: {
     nikkei_225: MarketIndex | null
-    topix: MarketIndex | null
     dow_jones: MarketIndex | null
   }
   updated_at?: string
+  data_source?: string
 }
 
 export const marketApi = {
