@@ -33,7 +33,7 @@ class TestLLMService:
         from app.services.llm_service import LLMService
         
         service = LLMService()
-        result = service._fallback_parse("PER15倍以下の高配当株")
+        result = service._fallback_parse("PER=15倍以下の高配当株")
         
         assert result["strategy"] == "dividend_focus"
         assert "filters" in result

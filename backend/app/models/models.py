@@ -70,7 +70,7 @@ class Stock(Base):
 
     # リレーションシップ
     prices: Mapped[List["StockPrice"]] = relationship(back_populates="stock", cascade="all, delete-orphan")
-    watchlists: Mapped[List["Watchlist"]] = relationship(back_populates="stock", cascade="all, delete-orphan")
+    # watchlistsリレーションシップは削除 - stock_codeベースに移行
 
     def __repr__(self) -> str:
         return f"<Stock(code={self.code}, name={self.name})>"
