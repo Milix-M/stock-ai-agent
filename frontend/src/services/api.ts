@@ -10,8 +10,32 @@ export const api = axios.create({
   },
 })
 
+// APIクライアント（認証付き）
+export const authApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// 認証なしのAPIクライアント（リフレッシュ等に使用）
+export const publicApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
 // リクエストインターセプター（トークン追加）
 api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+authApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -24,25 +48,25 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
-    
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
-      
+
       try {
         const refreshToken = localStorage.getItem('refresh_token')
         if (!refreshToken) {
           window.location.href = '/login'
           return Promise.reject(error)
         }
-        
-        // リフレッシュトークンで新しいアクセストークンを取得
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+
+        // リフレッシュトークンで新しいアクセストークンを取得（publicApiを使用）
+        const response = await publicApi.post('/auth/refresh', {
           refresh_token: refreshToken,
         })
-        
+
         const { access_token } = response.data
         localStorage.setItem('access_token', access_token)
-        
+
         // 元のリクエストをリトライ
         originalRequest.headers.Authorization = `Bearer ${access_token}`
         return api(originalRequest)
@@ -54,7 +78,7 @@ api.interceptors.response.use(
         return Promise.reject(refreshError)
       }
     }
-    
+
     return Promise.reject(error)
   }
 )
