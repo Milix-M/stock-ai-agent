@@ -5,13 +5,13 @@
 from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from pydantic_ai import Agent
+from pydantic_ai import Agent, AgentTool, RunResult
 
 from app.agents.base import BaseAgent
-from app.agents.tools import AgentTools, StockAlert
 from app.services.news_service import NewsService
 from app.services.financial_service import FinancialService
 from app.services.technical_service import TechnicalAnalysisService
+from app.services.stock_service import StockService
 
 
 class NewsAnalysis(BaseModel):
@@ -93,25 +93,127 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
     
     def __init__(
         self,
-        tools: AgentTools,
+        stock_service: StockService,
         news_service: NewsService,
         financial_service: FinancialService,
         technical_service: TechnicalAnalysisService
     ):
         super().__init__(analysis_agent)
-        self.tools = tools
+        self.stock_service = stock_service
         self.news_service = news_service
         self.financial_service = financial_service
         self.technical_service = technical_service
     
-    async def run(self, context: dict) -> StockAnalysisResult:
+    @AgentTool
+    async def fetch_stock_price(self, code: str) -> dict:
+        """株価を取得"""
+        stock = await self.stock_service.get_stock_by_code(code)
+        if not stock:
+            return None
+        
+        price = await self.stock_service.get_latest_price(stock.id)
+        if not price:
+            return None
+        
+        return {
+            "code": code,
+            "name": stock.name,
+            "close": float(price.close),
+            "open": float(price.open) if price.open else None,
+            "high": float(price.high) if price.high else None,
+            "low": float(price.low) if price.low else None,
+            "volume": price.volume,
+            "date": price.date.isoformat() if price.date else None
+        }
+    
+    @AgentTool
+    async def analyze_news_sentiment(self, query: str) -> dict:
+        """ニュースの感情分析"""
+        news_articles = await self.news_service.search_news(query, days=7, max_results=10)
+        
+        if not news_articles:
+            return {"sentiment": "neutral", "score": 0.0}
+        
+        # 簡易的なセンチメント分析
+        sentiments = []
+        for article in news_articles:
+            if hasattr(article, 'sentiment'):
+                sentiments.append(article.sentiment)
+        
+        positive = sentiments.count("positive")
+        negative = sentiments.count("negative")
+        total = len(sentiments)
+        
+        if total > 0:
+            score = (positive - negative) / total
+        else:
+            score = 0.0
+        
+        sentiment = "neutral"
+        if score > 0.2:
+            sentiment = "positive"
+        elif score < -0.2:
+            sentiment = "negative"
+        
+        return {
+            "sentiment": sentiment,
+            "score": score,
+            "article_count": total
+        }
+    
+    @AgentTool
+    async def check_financial_health(self, stock_code: str) -> dict:
+        """財務健全性を確認"""
+        financial = await self.financial_service.get_financial_data(stock_code)
+        if not financial:
+            return {"health": "unknown"}
+        
+        health = "moderate"
+        if financial.total_assets and financial.equity:
+            equity_ratio = financial.equity / financial.total_assets
+            if equity_ratio > 0.5:
+                health = "strong"
+            elif equity_ratio < 0.3:
+                health = "weak"
+        
+        return {
+            "health": health,
+            "equity_ratio": equity_ratio if financial.total_assets and financial.equity else None
+        }
+    
+    @AgentTool
+    async def analyze_technical_trend(self, stock_code: str) -> dict:
+        """テクニカルトレンド分析"""
+        prices = await self.stock_service.get_stock_prices_by_code(stock_code, days=60)
+        if len(prices) < 20:
+            return {"trend": "unknown"}
+        
+        closes = [float(p.close) for p in prices]
+        
+        # 5日・20日移動平均
+        sma_5 = sum(closes[-5:]) / 5
+        sma_20 = sum(closes[-20:]) / 20
+        
+        trend = "sideways"
+        if sma_5 > sma_20 * 1.02:
+            trend = "uptrend"
+        elif sma_5 < sma_20 * 0.98:
+            trend = "downtrend"
+        
+        return {
+            "trend": trend,
+            "sma_5": sma_5,
+            "sma_20": sma_20
+        }
+    
+    async def run(self, context: dict) -> RunResult[StockAnalysisResult]:
         """
         分析フロー：
         1. 対象銘柄の基本情報取得
         2. ニュース検索・分析
-        3. 決算データ確認
+        3. 財務データ確認
         4. テクニカル指標計算
-        5. 統合分析レポート生成
+        5. 総合分析レポート生成
         """
         stock_code = context.get("stock_code")
         stock_name = context.get("stock_name")
@@ -121,54 +223,62 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
             raise ValueError("stock_code is required")
         
         # 1. 基本情報取得
-        stock = await self.tools.stock_service.get_stock_by_code(stock_code)
+        stock = await self.stock_service.get_stock_by_code(stock_code)
         if not stock:
             raise ValueError(f"Stock not found: {stock_code}")
         
         stock_name = stock_name or stock.name
         
         # 2. ニュース分析
-        news_articles = await self.news_service.search_stock_news(
-            stock_code, stock_name, days=7
+        news_analysis_data = await self.analyze_news_sentiment(f"{stock_name} {stock_code}")
+        news_analysis = NewsAnalysis(
+            sentiment=news_analysis_data.get("sentiment", "neutral"),
+            sentiment_score=news_analysis_data.get("score", 0.0),
+            key_topics=[],
+            risk_factors=[],
+            opportunities=[]
         )
-        news_analysis = await self._analyze_news(news_articles)
         
         # 3. 財務分析
         financial_data = await self.financial_service.get_financial_data(stock_code)
         financial_analysis = await self._analyze_financial(financial_data)
         
         # 4. テクニカル分析
-        prices = await self.tools.stock_service.get_stock_prices(stock.id, days=60)
+        prices = await self.stock_service.get_stock_prices(stock.id, days=60)
         price_data = [
             {"close": float(p.close), "date": p.date.isoformat()}
             for p in prices
         ]
-        technical_analysis = await self.technical_service.analyze_stock(price_data)
-        technical_signals = self.technical_service.generate_signals(technical_analysis)
+        technical_analysis_data = await self.technical_service.analyze_stock(price_data)
+        technical_signals = self.technical_service.generate_signals(technical_analysis_data)
+        technical_analysis = TechnicalAnalysis(
+            trend="uptrend" if technical_analysis_data.sma_5 and technical_analysis_data.sma_20 
+                      and technical_analysis_data.sma_5 > technical_analysis_data.sma_20 else "downtrend",
+            momentum="strong" if technical_analysis_data.rsi and technical_analysis_data.rsi > 50 else "weak",
+            volatility="medium",
+            signals=technical_signals,
+            support_levels=[],
+            resistance_levels=[]
+        )
         
-        # 5. PydanticAIで統合分析
-        # （将来的にLLMでより高度な分析を行う）
+        # 5. 総合評価
+        overall_rating = self._determine_rating(
+            news_analysis, financial_analysis, technical_analysis
+        )
+        confidence_score = self._calculate_confidence(
+            news_analysis, financial_analysis, technical_analysis
+        )
+        
+        # 6. 結果生成
         result = StockAnalysisResult(
             stock_code=stock_code,
             stock_name=stock_name,
             analysis_date=datetime.now().isoformat(),
-            overall_rating=self._determine_rating(
-                news_analysis, financial_analysis, technical_analysis
-            ),
-            confidence_score=self._calculate_confidence(
-                news_analysis, financial_analysis, technical_analysis
-            ),
+            overall_rating=overall_rating,
+            confidence_score=confidence_score,
             news_analysis=news_analysis,
             financial_analysis=financial_analysis,
-            technical_analysis=TechnicalAnalysis(
-                trend="uptrend" if technical_analysis.sma_5 and technical_analysis.sma_20 
-                      and technical_analysis.sma_5 > technical_analysis.sma_20 else "downtrend",
-                momentum="strong" if technical_analysis.rsi and technical_analysis.rsi > 50 else "weak",
-                volatility="medium",
-                signals=technical_signals,
-                support_levels=[],
-                resistance_levels=[]
-            ),
+            technical_analysis=technical_analysis,
             summary=self._generate_summary(
                 stock_name, news_analysis, financial_analysis, technical_signals
             ),
@@ -182,58 +292,6 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
         )
         
         return result
-    
-    async def _analyze_news(self, articles: list) -> NewsAnalysis:
-        """ニュースを分析"""
-        if not articles:
-            return NewsAnalysis(
-                sentiment="neutral",
-                sentiment_score=0.0,
-                key_topics=[],
-                risk_factors=[],
-                opportunities=[]
-            )
-        
-        # 簡易的なセンチメント分析
-        # TODO: LLMでより正確な分析
-        sentiments = []
-        topics = set()
-        risks = []
-        opportunities = []
-        
-        for article in articles:
-            if hasattr(article, 'sentiment'):
-                sentiments.append(article.sentiment)
-            if hasattr(article, 'title'):
-                # 簡易的なキーワード抽出
-                title = article.title
-                if "増益" in title or "好調" in title:
-                    opportunities.append("業績好調の報道")
-                elif "減益" in title or "不振" in title:
-                    risks.append("業績不振の報道")
-        
-        # センチメント集計
-        sentiment_score = 0.0
-        if sentiments:
-            positive = sentiments.count("positive")
-            negative = sentiments.count("negative")
-            total = len(sentiments)
-            if total > 0:
-                sentiment_score = (positive - negative) / total
-        
-        sentiment = "neutral"
-        if sentiment_score > 0.2:
-            sentiment = "positive"
-        elif sentiment_score < -0.2:
-            sentiment = "negative"
-        
-        return NewsAnalysis(
-            sentiment=sentiment,
-            sentiment_score=sentiment_score,
-            key_topics=list(topics)[:5],
-            risk_factors=risks[:3],
-            opportunities=opportunities[:3]
-        )
     
     async def _analyze_financial(self, financial_data) -> FinancialAnalysis:
         """財務データを分析"""
@@ -254,7 +312,7 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
             elif financial_data.revenue_growth < -0.1:
                 revenue_trend = "declining"
         
-        # 収益性判断（営業利益率）
+        # 収益性判断
         profitability = "medium"
         if financial_data.revenue and financial_data.operating_profit:
             margin = financial_data.operating_profit / financial_data.revenue
@@ -263,9 +321,9 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
             elif margin < 0.05:
                 profitability = "low"
         
-        # 財務健全性（自己資本比率）
+        # 財務健全性判断
         financial_health = "moderate"
-        if financial_data.equity and financial_data.total_assets:
+        if financial_data.total_assets and financial_data.equity:
             equity_ratio = financial_data.equity / financial_data.total_assets
             if equity_ratio > 0.5:
                 financial_health = "strong"
@@ -276,7 +334,7 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
             revenue_trend=revenue_trend,
             profitability=profitability,
             financial_health=financial_health,
-            valuation="fair",  # TODO: 適正株価計算
+            valuation="fair",
             key_metrics={
                 "revenue": financial_data.revenue,
                 "operating_profit": financial_data.operating_profit,
@@ -313,11 +371,10 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
             score -= 1
         
         # テクニカルスコア
-        if technical.sma_5 and technical.sma_20:
-            if technical.sma_5 > technical.sma_20:
-                score += 1
-            else:
-                score -= 1
+        if technical.trend == "uptrend":
+            score += 1
+        elif technical.trend == "downtrend":
+            score -= 1
         
         if score >= 2:
             return "buy"
@@ -332,14 +389,13 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
         technical
     ) -> float:
         """確信度を計算"""
-        # データの充実度に基づく簡易的な計算
         confidence = 0.5
         
         if news.key_topics:
             confidence += 0.1
         if financial.key_metrics:
             confidence += 0.2
-        if technical.rsi is not None:
+        if technical.signals:
             confidence += 0.1
         
         return min(confidence, 0.9)
@@ -362,9 +418,9 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
         
         # 業績サマリー
         if financial.revenue_trend == "growing":
-            parts.append("売上は成長傾向にあります。")
+            parts.append("売上高は成長傾向にあります。")
         elif financial.revenue_trend == "declining":
-            parts.append("売上は減少傾向にあります。")
+            parts.append("売上高は減少傾向にあります。")
         
         # テクニカルサマリー
         if signals:
