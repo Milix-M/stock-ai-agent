@@ -47,6 +47,11 @@ export default defineConfig({
       '/api': {
         target: 'http://backend:8000',
         changeOrigin: true,
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            req.headers['x-forwarded-host'] = req.headers['host'];
+          });
+        },
       },
     },
   },

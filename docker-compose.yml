@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "0.0.0.0:5432:5432"  # 外部からのアクセスを許可
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -26,7 +26,7 @@ services:
     image: redis:7-alpine
     container_name: stock-ai-redis
     ports:
-      - "6379:6379"
+      - "0.0.0.0:6379:6379"  # 外部からのアクセスを許可
     volumes:
       - redis_data:/data
     networks:
@@ -51,7 +51,7 @@ services:
     env_file:
       - ./backend/.env
     ports:
-      - "8000:8000"
+      - "0.0.0.0:8000:8000"  # 外部からのアクセスを許可
     volumes:
       - ./backend:/app
     depends_on:
@@ -115,10 +115,12 @@ services:
       dockerfile: Dockerfile
     container_name: stock-ai-frontend
     ports:
-      - "5173:5173"
+      - "0.0.0.0:5173:5173"  # 外部からのアクセスを許可
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    extra_hosts:
+      - "backend:127.0.0.1"
     environment:
       - CHOKIDAR_USEPOLLING=true
     command: npm run dev -- --host
