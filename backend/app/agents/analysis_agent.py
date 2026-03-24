@@ -8,10 +8,13 @@ from typing import List, Optional, Dict, Any
 from pydantic_ai import Agent, AgentTool, RunResult
 
 from app.agents.base import BaseAgent
+from app.config import get_settings
 from app.services.news_service import NewsService
 from app.services.financial_service import FinancialService
 from app.services.technical_service import TechnicalAnalysisService
 from app.services.stock_service import StockService
+
+settings = get_settings()
 
 
 class NewsAnalysis(BaseModel):
@@ -62,10 +65,14 @@ class StockAnalysisResult(BaseModel):
     recommendations: List[str]
 
 
-# PydanticAIエージェント定義
+# PydanticAIエージェント定義（APIキーを明示的に渡す）
+_analysis_model = "openai:gpt-4o-mini" if settings.LLM_PROVIDER == "openai" else "openrouter:anthropic/claude-3.5-sonnet"
+_analysis_api_key = settings.OPENAI_API_KEY if settings.LLM_PROVIDER == "openai" else settings.OPENROUTER_API_KEY
+
 analysis_agent = Agent(
-    model="openai:gpt-4o-mini",
+    model=_analysis_model,
     result_type=StockAnalysisResult,
+    api_key=_analysis_api_key if _analysis_api_key else None,  # APIキーがある場合のみ渡す
     system_prompt="""
     あなたは株式分析の専門家です。
     提供されたデータに基づいて、銘柄の包括的な分析を行ってください。

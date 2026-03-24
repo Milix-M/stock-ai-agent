@@ -7,11 +7,14 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from app.agents.base import BaseAgent
+from app.config import get_settings
 from app.agents.tools import AgentTools
 from app.agents.memory import AgentSharedMemory
 from app.services.recommendation_service import PatternMatcher, PatternMatch
 from app.services.pattern_service import PatternService  # 後で作成
 from app.models import InvestmentPattern
+
+settings = get_settings()
 
 
 class Recommendation(BaseModel):
