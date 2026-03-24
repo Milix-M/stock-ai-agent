@@ -65,8 +65,8 @@ class StockAnalysisResult(BaseModel):
     recommendations: List[str]
 
 
-# APIキーの設定（環境変数から読み込まれる）
-_analysis_model = "openai:gpt-4o-mini" if settings.LLM_PROVIDER == "openai" else "openrouter:anthropic/claude-3.5-sonnet"
+# APIキーの設定
+_analysis_model = "openai:gpt-4o-mini"
 
 # PydanticAIエージェント定義
 analysis_agent = Agent(

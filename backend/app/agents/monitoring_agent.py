@@ -18,9 +18,9 @@ class MonitoringResult(BaseModel):
 
 # PydanticAIエージェント定義
 # APIキーの設定
-_monitoring_model = "openai:gpt-4o-mini" if settings.LLM_PROVIDER == "openai" else "openrouter:anthropic/claude-3.5-sonnet"
+_monitoring_model = "openai:gpt-4o-mini"
 
-# PydanticAIエージェント定義（APIキーは環境変数から読み込まれる）
+# PydanticAIエージェント定義
 monitoring_agent = Agent(
     model=_monitoring_model,
     result_type=MonitoringResult,
