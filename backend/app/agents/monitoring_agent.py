@@ -17,14 +17,13 @@ class MonitoringResult(BaseModel):
 
 
 # PydanticAIエージェント定義
-# PydanticAIエージェント定義（APIキーを明示的に渡す）
+# APIキーの設定
 _monitoring_model = "openai:gpt-4o-mini" if settings.LLM_PROVIDER == "openai" else "openrouter:anthropic/claude-3.5-sonnet"
-_monitoring_api_key = settings.OPENAI_API_KEY if settings.LLM_PROVIDER == "openai" else settings.OPENROUTER_API_KEY
 
+# PydanticAIエージェント定義（APIキーは環境変数から読み込まれる）
 monitoring_agent = Agent(
     model=_monitoring_model,
     result_type=MonitoringResult,
-    api_key=_monitoring_api_key if _monitoring_api_key else None,  # APIキーがある場合のみ渡す
     system_prompt="""
     あなたは株価監視の専門家です。
     与えられた銘柄リストを監視し、重要な変化を検知してください。

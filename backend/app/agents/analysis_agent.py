@@ -65,14 +65,13 @@ class StockAnalysisResult(BaseModel):
     recommendations: List[str]
 
 
-# PydanticAIエージェント定義（APIキーを明示的に渡す）
+# APIキーの設定（環境変数から読み込まれる）
 _analysis_model = "openai:gpt-4o-mini" if settings.LLM_PROVIDER == "openai" else "openrouter:anthropic/claude-3.5-sonnet"
-_analysis_api_key = settings.OPENAI_API_KEY if settings.LLM_PROVIDER == "openai" else settings.OPENROUTER_API_KEY
 
+# PydanticAIエージェント定義
 analysis_agent = Agent(
     model=_analysis_model,
     result_type=StockAnalysisResult,
-    api_key=_analysis_api_key if _analysis_api_key else None,  # APIキーがある場合のみ渡す
     system_prompt="""
     あなたは株式分析の専門家です。
     提供されたデータに基づいて、銘柄の包括的な分析を行ってください。
