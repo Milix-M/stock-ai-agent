@@ -16,9 +16,7 @@ class MonitoringResult(BaseModel):
     triggered_count: int
 
 
-# PydanticAIエージェント定義
 # APIキーの設定
-# OpenAIとOpenRouterの両方をサポート
 _api_key = None
 if settings.LLM_PROVIDER == "openai":
     _api_key = settings.OPENAI_API_KEY
@@ -117,7 +115,6 @@ class MonitoringAgent(BaseAgent[MonitoringResult]):
                 continue
         
         # PydanticAIエージェントで結果を構造化
-        # （将来的にLLMでアラートの優先度付けや要約を行う）
         result = MonitoringResult(
             alerts=alerts,
             checked_stocks=len(stock_codes),

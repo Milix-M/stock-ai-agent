@@ -5,7 +5,7 @@
 from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from pydantic_ai import Agent, Tool
+from pydantic_ai import Agent
 from pydantic_ai.result import RunResult
 
 from app.agents.base import BaseAgent
@@ -133,108 +133,6 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
         self.news_service = news_service
         self.financial_service = financial_service
         self.technical_service = technical_service
-    
-    @Tool
-    async def fetch_stock_price(self, code: str) -> dict:
-        """株価を取得"""
-        stock = await self.stock_service.get_stock_by_code(code)
-        if not stock:
-            return None
-        
-        price = await self.stock_service.get_latest_price(stock.id)
-        if not price:
-            return None
-        
-        return {
-            "code": code,
-            "name": stock.name,
-            "close": float(price.close),
-            "open": float(price.open) if price.open else None,
-            "high": float(price.high) if price.high else None,
-            "low": float(price.low) if price.low else None,
-            "volume": price.volume,
-            "date": price.date.isoformat() if price.date else None
-        }
-    
-    @Tool
-    async def analyze_news_sentiment(self, query: str) -> dict:
-        """ニュースの感情分析"""
-        news_articles = await self.news_service.search_news(query, days=7, max_results=10)
-        
-        if not news_articles:
-            return {"sentiment": "neutral", "score": 0.0}
-        
-        # 簡易的なセンチメント分析
-        sentiments = []
-        for article in news_articles:
-            if hasattr(article, 'sentiment'):
-                sentiments.append(article.sentiment)
-        
-        positive = sentiments.count("positive")
-        negative = sentiments.count("negative")
-        total = len(sentiments)
-        
-        if total > 0:
-            score = (positive - negative) / total
-        else:
-            score = 0.0
-        
-        sentiment = "neutral"
-        if score > 0.2:
-            sentiment = "positive"
-        elif score < -0.2:
-            sentiment = "negative"
-        
-        return {
-            "sentiment": sentiment,
-            "score": score,
-            "article_count": total
-        }
-    
-    @Tool
-    async def check_financial_health(self, stock_code: str) -> dict:
-        """財務健全性を確認"""
-        financial = await self.financial_service.get_financial_data(stock_code)
-        if not financial:
-            return {"health": "unknown"}
-        
-        health = "moderate"
-        if financial.total_assets and financial.equity:
-            equity_ratio = financial.equity / financial.total_assets
-            if equity_ratio > 0.5:
-                health = "strong"
-            elif equity_ratio < 0.3:
-                health = "weak"
-        
-        return {
-            "health": health,
-            "equity_ratio": equity_ratio if financial.total_assets and financial.equity else None
-        }
-    
-    @Tool
-    async def analyze_technical_trend(self, stock_code: str) -> dict:
-        """テクニカルトレンド分析"""
-        prices = await self.stock_service.get_stock_prices_by_code(stock_code, days=60)
-        if len(prices) < 20:
-            return {"trend": "unknown"}
-        
-        closes = [float(p.close) for p in prices]
-        
-        # 5日・20日移動平均
-        sma_5 = sum(closes[-5:]) / 5
-        sma_20 = sum(closes[-20:]) / 20
-        
-        trend = "sideways"
-        if sma_5 > sma_20 * 1.02:
-            trend = "uptrend"
-        elif sma_5 < sma_20 * 0.98:
-            trend = "downtrend"
-        
-        return {
-            "trend": trend,
-            "sma_5": sma_5,
-            "sma_20": sma_20
-        }
     
     async def run(self, context: dict) -> RunResult[StockAnalysisResult]:
         """
