@@ -18,12 +18,35 @@ class MonitoringResult(BaseModel):
 
 # PydanticAIエージェント定義
 # APIキーの設定
-_monitoring_model = "openai:gpt-4o-mini"
+# OpenAIとOpenRouterの両方をサポート
+_api_key = None
+if settings.LLM_PROVIDER == "openai":
+    _api_key = settings.OPENAI_API_KEY
+elif settings.LLM_PROVIDER == "openrouter":
+    _api_key = settings.OPENROUTER_API_KEY
+    # OpenRouterの場合は環境変数を設定
+    import os
+    os.environ['OPENAI_API_KEY'] = _api_key
+
+# モデル名と設定の設定
+if settings.LLM_PROVIDER == "openai":
+    _model = "openai:gpt-4o-mini"
+    _model_settings = None
+elif settings.LLM_PROVIDER == "openrouter":
+    # OpenRouterのモデル名とbase_url
+    _model = "anthropic/claude-3.5-sonnet"
+    _model_settings = {
+        "base_url": "https://openrouter.ai/api/v1"
+    }
+else:
+    _model = "openai:gpt-4o-mini"
+    _model_settings = None
 
 # PydanticAIエージェント定義
 monitoring_agent = Agent(
-    model=_monitoring_model,
+    model=_model,
     result_type=MonitoringResult,
+    model_settings=_model_settings,  # OpenRouterの場合はbase_urlを設定
     system_prompt="""
     あなたは株価監視の専門家です。
     与えられた銘柄リストを監視し、重要な変化を検知してください。

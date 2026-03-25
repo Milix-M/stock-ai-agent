@@ -17,6 +17,29 @@ from app.services.stock_service import StockService
 settings = get_settings()
 
 
+# APIキーの設定
+# OpenAIとOpenRouterの両方をサポート
+_api_key = None
+if settings.LLM_PROVIDER == "openai":
+    _api_key = settings.OPENAI_API_KEY
+elif settings.LLM_PROVIDER == "openrouter":
+    _api_key = settings.OPENROUTER_API_KEY
+
+# モデル名と設定の設定
+if settings.LLM_PROVIDER == "openai":
+    _model = "openai:gpt-4o-mini"
+    _model_settings = None
+elif settings.LLM_PROVIDER == "openrouter":
+    # OpenRouterのモデル名形式
+    _model = "anthropic/claude-3.5-sonnet"
+    _model_settings = {
+        "base_url": "https://openrouter.ai/api/v1"
+    }
+else:
+    _model = "openai:gpt-4o-mini"
+    _model_settings = None
+
+
 class NewsAnalysis(BaseModel):
     """ニュース分析結果"""
     sentiment: str  # "positive" | "negative" | "neutral"
@@ -66,12 +89,35 @@ class StockAnalysisResult(BaseModel):
 
 
 # APIキーの設定
-_analysis_model = "openai:gpt-4o-mini"
+# OpenAIとOpenRouterの両方をサポート
+_api_key = None
+if settings.LLM_PROVIDER == "openai":
+    _api_key = settings.OPENAI_API_KEY
+elif settings.LLM_PROVIDER == "openrouter":
+    _api_key = settings.OPENROUTER_API_KEY
+    # OpenRouterの場合は環境変数を設定
+    import os
+    os.environ['OPENAI_API_KEY'] = _api_key
+
+# モデル名と設定の設定
+if settings.LLM_PROVIDER == "openai":
+    _model = "openai:gpt-4o-mini"
+    _model_settings = None
+elif settings.LLM_PROVIDER == "openrouter":
+    # OpenRouterのモデル名とbase_url
+    _model = "anthropic/claude-3.5-sonnet"
+    _model_settings = {
+        "base_url": "https://openrouter.ai/api/v1"
+    }
+else:
+    _model = "openai:gpt-4o-mini"
+    _model_settings = None
 
 # PydanticAIエージェント定義
 analysis_agent = Agent(
-    model=_analysis_model,
+    model=_model,
     result_type=StockAnalysisResult,
+    model_settings=_model_settings,  # OpenRouterの場合はbase_urlを設定
     system_prompt="""
     あなたは株式分析の専門家です。
     提供されたデータに基づいて、銘柄の包括的な分析を行ってください。
