@@ -5,7 +5,8 @@
 from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from pydantic_ai import Agent, Tool, RunResult
+from pydantic_ai import Agent, Tool
+from pydantic_ai.result import RunResult
 
 from app.agents.base import BaseAgent
 from app.config import get_settings
