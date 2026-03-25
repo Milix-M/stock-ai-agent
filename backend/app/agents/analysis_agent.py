@@ -5,7 +5,7 @@
 from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from pydantic_ai import Agent, AgentTool, RunResult
+from pydantic_ai import Agent, Tool, RunResult
 
 from app.agents.base import BaseAgent
 from app.config import get_settings
@@ -156,7 +156,7 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
         self.financial_service = financial_service
         self.technical_service = technical_service
     
-    @AgentTool
+    @Tool
     async def fetch_stock_price(self, code: str) -> dict:
         """株価を取得"""
         stock = await self.stock_service.get_stock_by_code(code)
@@ -178,7 +178,7 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
             "date": price.date.isoformat() if price.date else None
         }
     
-    @AgentTool
+    @Tool
     async def analyze_news_sentiment(self, query: str) -> dict:
         """ニュースの感情分析"""
         news_articles = await self.news_service.search_news(query, days=7, max_results=10)
@@ -213,7 +213,7 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
             "article_count": total
         }
     
-    @AgentTool
+    @Tool
     async def check_financial_health(self, stock_code: str) -> dict:
         """財務健全性を確認"""
         financial = await self.financial_service.get_financial_data(stock_code)
@@ -233,7 +233,7 @@ class AnalysisAgent(BaseAgent[StockAnalysisResult]):
             "equity_ratio": equity_ratio if financial.total_assets and financial.equity else None
         }
     
-    @AgentTool
+    @Tool
     async def analyze_technical_trend(self, stock_code: str) -> dict:
         """テクニカルトレンド分析"""
         prices = await self.stock_service.get_stock_prices_by_code(stock_code, days=60)
