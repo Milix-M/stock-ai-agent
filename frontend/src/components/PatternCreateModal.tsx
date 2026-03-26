@@ -65,13 +65,13 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
     }
 
     // 主要な条件を追加（nullチェック付き）
-    if (filters.per_max !== null && filters.per_max !== undefined && filters.per_max <= 20) {
+    if (typeof filters.per_max === 'number' && !isNaN(filters.per_max) && filters.per_max <= 20) {
       parts.push(`PER${filters.per_max}倍以下`)
     }
-    if (filters.dividend_yield_min !== null && filters.dividend_yield_min !== undefined && filters.dividend_yield_min >= 2) {
+    if (typeof filters.dividend_yield_min === 'number' && !isNaN(filters.dividend_yield_min) && filters.dividend_yield_min >= 2) {
       parts.push(`配当${filters.dividend_yield_min}%以上`)
     }
-    if (filters.pbr_max !== null && filters.pbr_max !== undefined && filters.pbr_max <= 2) {
+    if (typeof filters.pbr_max === 'number' && !isNaN(filters.pbr_max) && filters.pbr_max <= 2) {
       parts.push(`PBR${filters.pbr_max}倍以下`)
     }
 
