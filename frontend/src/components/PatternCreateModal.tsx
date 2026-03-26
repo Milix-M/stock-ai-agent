@@ -224,7 +224,7 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
               
               {parseResult?.parsed?.keywords && (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {parseResult.parsed.keywords.map((keyword, idx) => (
+                  {parseResult.parsed.keywords?.map((keyword, idx) => (
                     <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
                       {keyword}
                     </span>
