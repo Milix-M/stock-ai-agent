@@ -2,19 +2,15 @@ import { api } from './api'
 
 export interface WatchlistItem {
   id: string
-  stock_id: string
-  alert_threshold?: number
-  created_at: string
-  stock: {
-    id: string
-    code: string
-    name: string
-    market?: string
-    sector?: string
-    per?: number
-    pbr?: number
-    dividend_yield?: number
-  }
+  stock_code: string
+  stock_name: string
+  market?: string
+  sector?: string
+  current_price?: number
+  change_percent?: number
+  per?: number
+  pbr?: number
+  dividend_yield?: number
 }
 
 export interface WatchlistCreateRequest {
