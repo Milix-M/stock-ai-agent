@@ -43,9 +43,9 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
     const filters = parsed.filters || {}
     const sectors = parsed.sectors || []
     const strategy = parsed.strategy || 'hybrid'
-    
+
     const parts: string[] = []
-    
+
     // 戦略に基づく接頭辞
     const strategyLabels: Record<string, string> = {
       dividend_focus: '高配当',
@@ -54,32 +54,32 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
       technical: 'テクニカル',
       hybrid: '複合'
     }
-    
+
     if (strategyLabels[strategy]) {
       parts.push(strategyLabels[strategy])
     }
-    
+
     // セクター情報
     if (sectors.length > 0) {
       parts.push(sectors[0])
     }
-    
-    // 主要な条件を追加
-    if (filters.per_max !== undefined && filters.per_max <= 20) {
+
+    // 主要な条件を追加（nullチェック付き）
+    if (filters.per_max !== null && filters.per_max !== undefined && filters.per_max <= 20) {
       parts.push(`PER${filters.per_max}倍以下`)
     }
-    if (filters.dividend_yield_min !== undefined && filters.dividend_yield_min >= 2) {
+    if (filters.dividend_yield_min !== null && filters.dividend_yield_min !== undefined && filters.dividend_yield_min >= 2) {
       parts.push(`配当${filters.dividend_yield_min}%以上`)
     }
-    if (filters.pbr_max !== undefined && filters.pbr_max <= 2) {
+    if (filters.pbr_max !== null && filters.pbr_max !== undefined && filters.pbr_max <= 2) {
       parts.push(`PBR${filters.pbr_max}倍以下`)
     }
-    
+
     // 名前が空の場合はデフォルト
     if (parts.length === 0) {
       return 'カスタムパターン'
     }
-    
+
     return parts.join('・') + 'パターン'
   }
 
@@ -107,23 +107,46 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
 
   const renderFilters = () => {
     if (!parseResult?.parsed?.filters) return null
-    
+
     const filters = parseResult.parsed.filters
     const items = []
-    
-    if (filters.per_min !== undefined || filters.per_max !== undefined) {
-      items.push(`PER: ${filters.per_min ?? '0'}〜${filters.per_max ?? '∞'}倍`)
+
+    // PER条件
+    if (filters.per_min !== null && filters.per_min !== undefined && filters.per_max !== null && filters.per_max !== undefined) {
+      items.push(`PER: ${filters.per_min}〜${filters.per_max}倍`)
+    } else if (filters.per_min !== null && filters.per_min !== undefined) {
+      items.push(`PER: ${filters.per_min}倍以上`)
+    } else if (filters.per_max !== null && filters.per_max !== undefined) {
+      items.push(`PER: ${filters.per_max}倍以下`)
     }
-    if (filters.pbr_min !== undefined || filters.pbr_max !== undefined) {
-      items.push(`PBR: ${filters.pbr_min ?? '0'}〜${filters.pbr_max ?? '∞'}倍`)
+
+    // PBR条件
+    if (filters.pbr_min !== null && filters.pbr_min !== undefined && filters.pbr_max !== null && filters.pbr_max !== undefined) {
+      items.push(`PBR: ${filters.pbr_min}〜${filters.pbr_max}倍`)
+    } else if (filters.pbr_min !== null && filters.pbr_min !== undefined) {
+      items.push(`PBR: ${filters.pbr_min}倍以上`)
+    } else if (filters.pbr_max !== null && filters.pbr_max !== undefined) {
+      items.push(`PBR: ${filters.pbr_max}倍以下`)
     }
-    if (filters.dividend_yield_min !== undefined || filters.dividend_yield_max !== undefined) {
-      items.push(`配当利回り: ${filters.dividend_yield_min ?? '0'}〜${filters.dividend_yield_max ?? '∞'}%`)
+
+    // 配当利回り条件
+    if (filters.dividend_yield_min !== null && filters.dividend_yield_min !== undefined && filters.dividend_yield_max !== null && filters.dividend_yield_max !== undefined) {
+      items.push(`配当利回り: ${filters.dividend_yield_min}〜${filters.dividend_yield_max}%`)
+    } else if (filters.dividend_yield_min !== null && filters.dividend_yield_min !== undefined) {
+      items.push(`配当利回り: ${filters.dividend_yield_min}%以上`)
+    } else if (filters.dividend_yield_max !== null && filters.dividend_yield_max !== undefined) {
+      items.push(`配当利回り: ${filters.dividend_yield_max}%以下`)
     }
-    if (filters.market_cap_min !== undefined || filters.market_cap_max !== undefined) {
-      items.push(`時価総額: ${filters.market_cap_min ?? '0'}〜${filters.market_cap_max ?? '∞'}`)
+
+    // 時価総額条件
+    if (filters.market_cap_min !== null && filters.market_cap_min !== undefined && filters.market_cap_max !== null && filters.market_cap_max !== undefined) {
+      items.push(`時価総額: ${filters.market_cap_min}〜${filters.market_cap_max}`)
+    } else if (filters.market_cap_min !== null && filters.market_cap_min !== undefined) {
+      items.push(`時価総額: ${filters.market_cap_min}以上`)
+    } else if (filters.market_cap_max !== null && filters.market_cap_max !== undefined) {
+      items.push(`時価総額: ${filters.market_cap_max}以下`)
     }
-    
+
     return items
   }
 

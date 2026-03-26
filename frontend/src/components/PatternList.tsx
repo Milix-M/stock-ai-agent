@@ -46,54 +46,54 @@ export default function PatternList() {
 
   const renderFilters = (filters?: any) => {
     if (!filters) return null
-    
+
     const items = []
-    
+
     // PER条件
-    if (filters.per_min !== undefined && filters.per_max !== undefined) {
+    if (filters.per_min !== null && filters.per_min !== undefined && filters.per_max !== null && filters.per_max !== undefined) {
       items.push(`PER: ${filters.per_min}〜${filters.per_max}倍`)
-    } else if (filters.per_min !== undefined) {
+    } else if (filters.per_min !== null && filters.per_min !== undefined) {
       items.push(`PER: ${filters.per_min}倍以上`)
-    } else if (filters.per_max !== undefined) {
+    } else if (filters.per_max !== null && filters.per_max !== undefined) {
       items.push(`PER: ${filters.per_max}倍以下`)
     }
-    
+
     // PBR条件
-    if (filters.pbr_min !== undefined && filters.pbr_max !== undefined) {
+    if (filters.pbr_min !== null && filters.pbr_min !== undefined && filters.pbr_max !== null && filters.pbr_max !== undefined) {
       items.push(`PBR: ${filters.pbr_min}〜${filters.pbr_max}倍`)
-    } else if (filters.pbr_min !== undefined) {
+    } else if (filters.pbr_min !== null && filters.pbr_min !== undefined) {
       items.push(`PBR: ${filters.pbr_min}倍以上`)
-    } else if (filters.pbr_max !== undefined) {
+    } else if (filters.pbr_max !== null && filters.pbr_max !== undefined) {
       items.push(`PBR: ${filters.pbr_max}倍以下`)
     }
-    
+
     // 配当利回り条件
-    if (filters.dividend_yield_min !== undefined && filters.dividend_yield_max !== undefined) {
+    if (filters.dividend_yield_min !== null && filters.dividend_yield_min !== undefined && filters.dividend_yield_max !== null && filters.dividend_yield_max !== undefined) {
       items.push(`配当: ${filters.dividend_yield_min}〜${filters.dividend_yield_max}%`)
-    } else if (filters.dividend_yield_min !== undefined) {
+    } else if (filters.dividend_yield_min !== null && filters.dividend_yield_min !== undefined) {
       items.push(`配当: ${filters.dividend_yield_min}%以上`)
-    } else if (filters.dividend_yield_max !== undefined) {
+    } else if (filters.dividend_yield_max !== null && filters.dividend_yield_max !== undefined) {
       items.push(`配当: ${filters.dividend_yield_max}%以下`)
     }
-    
+
     // 時価総額条件
-    if (filters.market_cap_min !== undefined && filters.market_cap_max !== undefined) {
+    if (filters.market_cap_min !== null && filters.market_cap_min !== undefined && filters.market_cap_max !== null && filters.market_cap_max !== undefined) {
       items.push(`時価総額: ${formatMarketCap(filters.market_cap_min)}〜${formatMarketCap(filters.market_cap_max)}`)
-    } else if (filters.market_cap_min !== undefined) {
+    } else if (filters.market_cap_min !== null && filters.market_cap_min !== undefined) {
       items.push(`時価総額: ${formatMarketCap(filters.market_cap_min)}以上`)
-    } else if (filters.market_cap_max !== undefined) {
+    } else if (filters.market_cap_max !== null && filters.market_cap_max !== undefined) {
       items.push(`時価総額: ${formatMarketCap(filters.market_cap_max)}以下`)
     }
-    
+
     // 株価変動率条件
-    if (filters.price_change_min !== undefined && filters.price_change_max !== undefined) {
+    if (filters.price_change_min !== null && filters.price_change_min !== undefined && filters.price_change_max !== null && filters.price_change_max !== undefined) {
       items.push(`変動率: ${filters.price_change_min}〜${filters.price_change_max}%`)
-    } else if (filters.price_change_min !== undefined) {
+    } else if (filters.price_change_min !== null && filters.price_change_min !== undefined) {
       items.push(`変動率: ${filters.price_change_min}%以上`)
-    } else if (filters.price_change_max !== undefined) {
+    } else if (filters.price_change_max !== null && filters.price_change_max !== undefined) {
       items.push(`変動率: ${filters.price_change_max}%以下`)
     }
-    
+
     return items.length > 0 ? items.join(' · ') : '条件なし'
   }
 
