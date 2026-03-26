@@ -18,7 +18,7 @@ export interface WatchlistItem {
 }
 
 export interface WatchlistCreateRequest {
-  stock_id: string
+  stock_code: string
   alert_threshold?: number
 }
 
@@ -30,7 +30,7 @@ export const watchlistApi = {
 
   addToWatchlist: async (stockCode: string, alertThreshold?: number): Promise<WatchlistItem> => {
     const response = await api.post('/watchlist/', {
-      stock_id: stockCode,
+      stock_code: stockCode,
       alert_threshold: alertThreshold,
     })
     return response.data
