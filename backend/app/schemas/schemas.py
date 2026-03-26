@@ -128,6 +128,11 @@ class StockPriceData(BaseModel):
     adjusted_close: Optional[float] = None
 
 
+class StockSearchResponse(StockBase):
+    """yfinance検索結果用のレスポンス（IDなし）"""
+    pass
+
+
 class StockDetailResponse(StockResponse):
     prices: dict  # daily, weekly, monthly
 

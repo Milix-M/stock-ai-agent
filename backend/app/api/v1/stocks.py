@@ -5,13 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.api.v1.users import get_current_user
 from app.services.stock_search_service import StockSearchService
-from app.schemas import StockResponse
+from app.schemas import StockSearchResponse
 
 router = APIRouter()
 stock_search_service = StockSearchService()
 
 
-@router.get("/", response_model=List[StockResponse])
+@router.get("/", response_model=List[StockSearchResponse])
 async def search_stocks(
     q: str = Query(..., description="検索キーワード（銘柄コードまたは銘柄名）"),
     limit: int = Query(20, ge=1, le=50),
@@ -22,8 +22,7 @@ async def search_stocks(
     results = await stock_search_service.search(q, limit)
     
     return [
-        StockResponse(
-            id=result.code,  # コードをID代わりに使用
+        StockSearchResponse(
             code=result.code,
             name=result.name,
             market=result.market,
@@ -31,9 +30,7 @@ async def search_stocks(
             per=None,
             pbr=None,
             dividend_yield=None,
-            market_cap=None,
-            created_at="",
-            updated_at=""
+            market_cap=None
         )
         for result in results
     ]
