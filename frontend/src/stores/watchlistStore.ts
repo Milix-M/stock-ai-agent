@@ -53,7 +53,7 @@ export const useWatchlistStore = create<WatchlistState>()((set, get) => ({
     try {
       await watchlistApi.removeFromWatchlist(stockCode)
       set({
-        items: get().items.filter(item => item.stock.code !== stockCode),
+        items: get().items.filter(item => item.stock_code !== stockCode),
         isLoading: false,
       })
     } catch (error: any) {

@@ -99,7 +99,7 @@ export default function StockSearchModal({ isOpen, onClose, onAdd }: StockSearch
             <ul className="divide-y divide-gray-200">
               {results.map((stock) => (
                 <li
-                  key={stock.id}
+                  key={stock.code}
                   className="py-3 flex justify-between items-center"
                 >
                   <div>

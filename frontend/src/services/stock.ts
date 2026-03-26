@@ -1,7 +1,6 @@
 import { api } from './api'
 
 export interface Stock {
-  id: string
   code: string
   name: string
   market?: string

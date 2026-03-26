@@ -76,24 +76,36 @@ export default function WatchlistComponent() {
               <li key={item.id} className="py-3 flex justify-between items-center">
                 <div>
                   <div className="font-medium">
-                    {item.stock.code} - {item.stock.name}
+                    {item.stock_code} - {item.stock_name}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {item.stock.market}
-                    {item.stock.sector && ` / ${item.stock.sector}`}
+                    {item.market}
+                    {item.sector && ` / ${item.sector}`}
                   </div>
-                  {item.alert_threshold && (
-                    <div className="text-xs text-blue-600">
-                      アラート: ±{item.alert_threshold}%
+                  {item.current_price !== undefined && (
+                    <div className="text-sm">
+                      <span className={item.change_percent !== undefined && item.change_percent >= 0 ? "text-green-600" : "text-red-600"}>
+                        {item.current_price.toLocaleString()}円
+                      </span>
+                      {item.change_percent !== undefined && (
+                        <span className={`ml-2 ${item.change_percent >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {item.change_percent >= 0 ? "+" : ""}{item.change_percent.toFixed(2)}%
+                        </span>
+                      )}
                     </div>
                   )}
+                  <div className="text-xs text-gray-400">
+                    {item.per !== undefined && `PER: ${item.per.toFixed(1)} `}
+                    {item.pbr !== undefined && `PBR: ${item.pbr.toFixed(1)} `}
+                    {item.dividend_yield !== undefined && `配当: ${item.dividend_yield.toFixed(1)}%`}
+                  </div>
                 </div>
                 <button
-                  onClick={() => handleRemove(item.stock.code)}
-                  disabled={removingId === item.stock.code}
+                  onClick={() => handleRemove(item.stock_code)}
+                  disabled={removingId === item.stock_code}
                   className="text-red-500 hover:text-red-700 text-sm px-3 py-1 border border-red-300 rounded hover:bg-red-50 transition disabled:opacity-50"
                 >
-                  {removingId === item.stock.code ? '削除中...' : '削除'}
+                  {removingId === item.stock_code ? '削除中...' : '削除'}
                 </button>
               </li>
             ))}
