@@ -73,7 +73,7 @@ export default function WatchlistComponent() {
         ) : (
           <ul className="divide-y divide-gray-200">
             {items.map((item) => (
-              <li key={item.id} className="py-3 flex justify-between items-center">
+              <li key={item.stock_code} className="py-3 flex justify-between items-center">
                 <div>
                   <div className="font-medium">
                     {item.stock_code} - {item.stock_name}

@@ -1,7 +1,6 @@
 import { api } from './api'
 
 export interface WatchlistItem {
-  id: string
   stock_code: string
   stock_name: string
   market?: string
