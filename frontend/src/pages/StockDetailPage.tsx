@@ -63,15 +63,14 @@ export default function StockDetailPage() {
         setInWatchlist(true)
       }
     } catch {
-      // エラーハンドリング
     } finally {
       setWatchlistLoading(false)
     }
   }
 
-  if (isLoading) return <div className="text-center py-8">読み込み中...</div>
-  if (error) return <div className="text-center py-8 text-red-600">{error}</div>
-  if (!stock) return <div className="text-center py-8">銘柄が見つかりません</div>
+  if (isLoading) return <div className="text-center py-16 text-slate-400">読み込み中...</div>
+  if (error) return <div className="text-center py-16 text-red-600 text-sm">{error}</div>
+  if (!stock) return <div className="text-center py-16 text-slate-400">銘柄が見つかりません</div>
 
   const formatNumber = (n: number | undefined) => n != null ? n.toLocaleString() : '-'
   const formatYield = (n: number | undefined) => n != null ? `${n.toFixed(2)}%` : '-'
@@ -84,43 +83,52 @@ export default function StockDetailPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-        <Link to="/stocks" className="hover:text-blue-600">銘柄検索</Link>
+      <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">
+        <Link to="/stocks" className="hover:text-blue-600 transition-colors">銘柄検索</Link>
         <span>/</span>
-        <span>{stock.code}</span>
+        <span className="text-slate-600">{stock.code}</span>
       </div>
 
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">{stock.name}</h1>
-          <p className="text-gray-500">{stock.code} ・ {stock.market || '-'} ・ {stock.sector || '-'}</p>
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">{stock.name}</h1>
+            <p className="text-sm text-slate-500 mt-1">{stock.code} ・ {stock.market || '-'} ・ {stock.sector || '-'}</p>
+            {stock.current_price != null && (
+              <div className="mt-3 flex items-center gap-3">
+                <span className="text-3xl font-bold text-slate-900">¥{formatNumber(stock.current_price)}</span>
+                {stock.change_percent != null && (
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-semibold ${
+                    stock.change_percent >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      {stock.change_percent >= 0 ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
+                      )}
+                    </svg>
+                    {stock.change_percent >= 0 ? '+' : ''}{stock.change_percent.toFixed(2)}%
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleToggleWatchlist}
+            disabled={watchlistLoading}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${
+              inWatchlist
+                ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {inWatchlist ? 'ウォッチリストから削除' : 'ウォッチリストに追加'}
+          </button>
         </div>
-        <button
-          onClick={handleToggleWatchlist}
-          disabled={watchlistLoading}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            inWatchlist
-              ? 'bg-red-100 text-red-700 hover:bg-red-200'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
-        >
-          {inWatchlist ? 'ウォッチリストから削除' : 'ウォッチリストに追加'}
-        </button>
       </div>
 
-      {stock.current_price != null && (
-        <div className="mb-6">
-          <span className="text-3xl font-bold">¥{formatNumber(stock.current_price)}</span>
-          {stock.change != null && (
-            <span className={`ml-2 text-lg ${(stock.change ?? 0) >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
-              {(stock.change ?? 0) >= 0 ? '+' : ''}{formatNumber(stock.change)}
-              ({(stock.change_percent ?? 0) >= 0 ? '+' : ''}{stock.change_percent?.toFixed(2)}%)
-            </span>
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         <InfoCard label="始値" value={`¥${formatNumber(stock.open)}`} />
         <InfoCard label="高値" value={`¥${formatNumber(stock.high)}`} />
         <InfoCard label="安値" value={`¥${formatNumber(stock.low)}`} />
@@ -136,9 +144,9 @@ export default function StockDetailPage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-lg font-semibold mt-1">{value}</p>
+    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+      <p className="text-xs text-slate-400 font-medium">{label}</p>
+      <p className="text-base font-semibold text-slate-800 mt-1">{value}</p>
     </div>
   )
 }

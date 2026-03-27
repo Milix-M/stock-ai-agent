@@ -4,13 +4,33 @@ import { useAuthStore } from '../stores/authStore'
 import { getNotifications } from '../services/notification'
 
 const navItems = [
-  { to: '/dashboard', label: 'ダッシュボード', icon: '📊' },
-  { to: '/stocks', label: '銘柄検索', icon: '🔍' },
-  { to: '/patterns', label: 'パターン管理', icon: '📐' },
-  { to: '/watchlist', label: 'ウォッチリスト', icon: '👁' },
-  { to: '/notifications', label: '通知履歴', icon: '🔔' },
-  { to: '/settings/notifications', label: '通知設定', icon: '⚙️' },
+  { to: '/dashboard', label: 'ダッシュボード', icon: 'dashboard' },
+  { to: '/stocks', label: '銘柄検索', icon: 'search' },
+  { to: '/patterns', label: 'パターン管理', icon: 'pattern' },
+  { to: '/watchlist', label: 'ウォッチリスト', icon: 'watchlist' },
+  { to: '/notifications', label: '通知履歴', icon: 'bell' },
+  { to: '/settings/notifications', label: '通知設定', icon: 'settings' },
 ]
+
+function NavIcon({ name, className }: { name: string; className?: string }) {
+  const cls = className || "w-5 h-5"
+  switch (name) {
+    case 'dashboard':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
+    case 'search':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+    case 'pattern':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+    case 'watchlist':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+    case 'bell':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+    case 'settings':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+    default:
+      return null
+  }
+}
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -30,60 +50,75 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-100">
       {/* モバイルオーバーレイ */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* サイドバー — デスクトップ: group + hoverで展開 / モバイル: toggle */}
+      {/* サイドバー */}
       <aside
-        className={`fixed top-0 left-0 h-full z-40 bg-white shadow-lg
-          flex flex-col transition-all duration-200
-          ${sidebarOpen ? 'w-56' : 'w-16'}
-          group`}
+        className={`fixed top-0 left-0 h-full z-40 bg-white border-r border-slate-200
+          flex flex-col transition-transform duration-300 w-56
+          lg:translate-x-0
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* ロゴ */}
-        <div className="flex items-center h-16 px-4 border-b overflow-hidden">
-          <span className="text-xl flex-shrink-0">📈</span>
-          <span className="ml-2 font-bold text-lg whitespace-nowrap overflow-hidden">
-            PICKS
-          </span>
+        <div className="flex items-center h-16 px-6 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <svg className="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+            </svg>
+            <span className="font-bold text-xl tracking-wide text-navy-700">PICKS</span>
+          </div>
         </div>
 
         {/* ナビ */}
-        <nav className="mt-4 space-y-1 px-2 flex-1">
+        <nav className="mt-6 space-y-1 px-3 flex-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center px-3 py-3 rounded-lg transition-colors overflow-hidden
-                ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                ${isActive
+                  ? 'bg-navy-700 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-navy-700'}`
               }
             >
-              <span className="text-xl flex-shrink-0">{item.icon}</span>
-              <span className="ml-3 whitespace-nowrap text-sm overflow-hidden">
-                {item.label}
-              </span>
+              <NavIcon name={item.icon} className="w-5 h-5" />
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
+
+        {/* サイドバー下部 */}
+        <div className="p-4 border-t border-slate-200">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            ログアウト
+          </button>
+        </div>
       </aside>
 
-      {/* メインエリア — サイドバー幅分オフセット */}
-      <div className="transition-all duration-200" style={{ marginLeft: '4rem' }}>
+      {/* メインエリア */}
+      <div className="lg:ml-56">
         {/* ヘッダー */}
-        <header className="bg-white shadow-sm sticky top-0 z-20">
-          <div className="flex items-center justify-between px-4 py-3">
+        <header className="bg-gradient-to-r from-navy-700 via-navy-700 to-navy-500 sticky top-0 z-20 shadow-lg">
+          <div className="flex items-center justify-between px-4 lg:px-6 py-3">
             {/* ハンバーガー（モバイルのみ） */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden text-gray-600 hover:text-gray-900 mr-3"
+              className="lg:hidden text-white/80 hover:text-white"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {sidebarOpen ? (
@@ -94,64 +129,37 @@ export default function Layout() {
               </svg>
             </button>
 
-            <div className="flex-1" />
+            {!sidebarOpen && (
+              <div className="hidden lg:block" />
+            )}
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               {/* 通知ベル */}
               <button
                 onClick={() => navigate('/notifications')}
-                className="relative text-gray-500 hover:text-gray-700"
+                className="relative text-white/80 hover:text-white transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                 </svg>
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
-              <span className="text-sm text-gray-600 hidden sm:block">
+              <span className="text-sm text-white/80 hidden sm:block">
                 {user?.display_name || user?.email}
               </span>
-              <button
-                onClick={handleLogout}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                ログアウト
-              </button>
             </div>
           </div>
         </header>
 
         {/* コンテンツ */}
-        <main className="max-w-7xl mx-auto px-4 py-8">
+        <main className="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
           <Outlet />
         </main>
       </div>
-
-      {/* CSS for group hover — inline style because Tailwind group hover needs parent class */}
-      <style>{`
-        @media (min-width: 1024px) {
-          aside:not(:hover) span.ml-3 {
-            display: none;
-          }
-          aside:hover {
-            width: 14rem !important;
-          }
-          aside:hover ~ div {
-            margin-left: 14rem !important;
-          }
-        }
-        @media (max-width: 1023px) {
-          aside {
-            transform: translateX(${sidebarOpen ? '0' : '-100%'});
-          }
-          aside ~ div {
-            margin-left: 0 !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }

@@ -14,7 +14,6 @@ export default function MarketOverview() {
 
   useEffect(() => {
     fetchMarketData()
-    // 30秒ごとに更新
     const interval = setInterval(fetchMarketData, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -35,26 +34,13 @@ export default function MarketOverview() {
     return num.toLocaleString('ja-JP')
   }
 
-  const getChangeColor = (change: number) => {
-    if (change > 0) return 'text-red-600'
-    if (change < 0) return 'text-green-600'
-    return 'text-gray-600'
-  }
-
-  const getChangeBg = (change: number) => {
-    if (change > 0) return 'bg-red-50'
-    if (change < 0) return 'bg-green-50'
-    return 'bg-gray-50'
-  }
-
   const renderIndex = (data: MarketIndex | null, label: string) => {
     if (!data) {
       return (
-        <div className="py-2">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">{label}</span>
-            <span className="text-gray-400">取得中...</span>
-          </div>
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+          <p className="text-sm text-slate-500 mb-2">{label}</p>
+          <div className="h-5 bg-slate-100 rounded animate-pulse w-24 mb-1" />
+          <div className="h-4 bg-slate-100 rounded animate-pulse w-16" />
         </div>
       )
     }
@@ -62,20 +48,25 @@ export default function MarketOverview() {
     const isPositive = data.change >= 0
 
     return (
-      <div className={`py-2 px-3 rounded-lg ${getChangeBg(data.change)}`}>
-        <div className="flex justify-between items-center">
-          <div>
-            <span className="font-medium text-gray-800">{data.name}</span>
-          </div>
-          <div className="text-right">
-            <div className="font-bold text-gray-900">
-              {formatNumber(data.current)}
-            </div>
-            <div className={`text-sm ${getChangeColor(data.change)}`}>
-              {isPositive ? '+' : ''}{data.change.toFixed(2)} (
-              {isPositive ? '+' : ''}{data.change_percent.toFixed(2)}%)
-            </div>
-          </div>
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+        <p className="text-sm text-slate-500 mb-2">{label}</p>
+        <p className="text-xl font-bold text-slate-800">
+          {formatNumber(data.current)}
+        </p>
+        <div className="flex items-center gap-1 mt-1">
+          <svg className={`w-4 h-4 ${isPositive ? 'text-emerald-600' : 'text-red-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {isPositive ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
+            )}
+          </svg>
+          <span className={`text-sm font-semibold ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
+            {isPositive ? '+' : ''}{data.change.toFixed(2)}
+            <span className="ml-0.5 text-xs font-medium">
+              ({isPositive ? '+' : ''}{data.change_percent.toFixed(2)}%)
+            </span>
+          </span>
         </div>
       </div>
     )
@@ -83,37 +74,37 @@ export default function MarketOverview() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-md font-semibold mb-4">マーケット概況</h3>
-        <div className="space-y-3">
-          <div className="h-12 bg-gray-100 rounded animate-pulse"></div>
-          <div className="h-12 bg-gray-100 rounded animate-pulse"></div>
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <h3 className="text-sm font-bold text-slate-800 mb-4">マーケット概況</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-24 bg-slate-50 rounded-lg animate-pulse" />
+          <div className="h-24 bg-slate-50 rounded-lg animate-pulse" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-md font-semibold">マーケット概況</h3>
+        <h3 className="text-sm font-bold text-slate-800">マーケット概況</h3>
         <button
           onClick={fetchMarketData}
-          className="text-xs text-gray-500 hover:text-gray-700"
+          className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
           disabled={isLoading}
         >
           更新
         </button>
       </div>
       
-      <div className="space-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {renderIndex(indices.nikkei_225, '日経平均')}
         {renderIndex(indices.dow_jones, 'NYダウ')}
       </div>
       
-      <p className="text-xs text-gray-400 mt-3">
+      <p className="text-xs text-slate-400 mt-3">
         ※ 30秒ごとに自動更新
-        {isFallback && <span className="ml-1 text-yellow-600">(デモデータ)</span>}
+        {isFallback && <span className="ml-1 text-amber-600">(デモデータ)</span>}
       </p>
     </div>
   )

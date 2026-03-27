@@ -52,7 +52,6 @@ export default function PatternCreatePage() {
       await createPattern(name, description, input, parseResult.parsed)
       navigate('/patterns')
     } catch {
-      // ストアでエラー処理
     }
   }
 
@@ -81,23 +80,23 @@ export default function PatternCreatePage() {
   }
 
   return (
-    <div className="max-w-lg">
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-        <button onClick={() => navigate('/patterns')} className="hover:text-blue-600">パターン管理</button>
+    <div className="max-w-2xl">
+      <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">
+        <button onClick={() => navigate('/patterns')} className="hover:text-blue-600 transition-colors">パターン管理</button>
         <span>/</span>
-        <span>新規作成</span>
+        <span className="text-slate-600">新規作成</span>
       </div>
 
-      <h1 className="text-2xl font-bold mb-6">投資パターンを作成</h1>
+      <h1 className="text-xl font-bold text-slate-800 mb-6">投資パターンを作成</h1>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">{error}</div>
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
         {step === 1 ? (
           <>
-            <p className="text-gray-600 mb-4">
+            <p className="text-slate-600 text-sm mb-4">
               自然言語であなたの投資基準を教えてください。
               <br />
               例：「高配当株でPER15倍以下、配当利回り3%以上」
@@ -106,69 +105,69 @@ export default function PatternCreatePage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="高配当株でPER15倍以下、配当利回り3%以上..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[140px] text-sm resize-none"
             />
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-3 mt-4">
               <button
                 onClick={() => navigate('/patterns')}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium text-slate-600 transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleParse}
                 disabled={!input.trim() || isParsing}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors"
               >
-                {isParsing ? '解析中...' : '次へ'}
+                {isParsing ? '解析中...' : '解析する'}
               </button>
             </div>
           </>
         ) : parseResult ? (
           <>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">パターン名</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">パターン名</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">説明（任意）</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">説明（任意）</label>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="このパターンについてのメモ..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h4 className="font-medium mb-2">解析結果</h4>
+            <div className="bg-slate-50 rounded-lg p-4 mb-4 border border-slate-200">
+              <h4 className="font-semibold text-sm text-slate-700 mb-2">解析結果</h4>
               {parseResult.parsed?.strategy && (
-                <p className="text-sm text-gray-600 mb-2">戦略: {parseResult.parsed.strategy}</p>
+                <p className="text-sm text-slate-600 mb-2">戦略: {parseResult.parsed.strategy}</p>
               )}
               {renderFilters()?.map((f, i) => (
-                <p key={i} className="text-sm text-gray-600">• {f}</p>
+                <p key={i} className="text-sm text-slate-600">• {f}</p>
               ))}
               {parseResult.parsed?.keywords && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {parseResult.parsed.keywords?.map((kw, i) => (
-                    <span key={i} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">{kw}</span>
+                    <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">{kw}</span>
                   ))}
                 </div>
               )}
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setStep(1)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            <div className="flex gap-3">
+              <button onClick={() => setStep(1)} className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium text-slate-600 transition-colors">
                 戻る
               </button>
               <button
                 onClick={handleCreate}
                 disabled={!name.trim() || isLoading}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors"
               >
                 {isLoading ? '作成中...' : '作成'}
               </button>

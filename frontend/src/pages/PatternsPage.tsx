@@ -7,10 +7,10 @@ export default function PatternsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">パターン管理</h1>
+        <h1 className="text-xl font-bold text-slate-800">パターン管理</h1>
         <button
           onClick={() => navigate('/patterns/new')}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
         >
           + 新規作成
         </button>

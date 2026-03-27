@@ -26,12 +26,12 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        checked ? 'bg-blue-600' : 'bg-gray-300'
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+        checked ? 'bg-emerald-500' : 'bg-slate-300'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
           checked ? 'translate-x-6' : 'translate-x-1'
         }`}
       />
@@ -52,9 +52,9 @@ function Slider({ value, min, max, step, onChange, label }: {
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="flex-1 accent-blue-600"
+        className="flex-1 accent-emerald-500"
       />
-      <span className="text-sm text-gray-600 w-20 text-right">{label}</span>
+      <span className="text-sm text-slate-500 w-24 text-right font-medium">{label}</span>
     </div>
   )
 }
@@ -79,7 +79,6 @@ export default function NotificationSettings() {
       const s = await getNotificationSettings()
       setSettings({ ...defaultSettings, ...s })
     } catch {
-      // デフォルトのまま
     } finally {
       setIsLoading(false)
     }
@@ -154,20 +153,20 @@ export default function NotificationSettings() {
   }
 
   if (isLoading) {
-    return <div className="bg-white rounded-lg shadow p-6"><p className="text-center py-4 text-gray-500">読み込み中...</p></div>
+    return <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6"><p className="text-center py-4 text-slate-400 text-sm">読み込み中...</p></div>
   }
 
   return (
     <div className="space-y-6">
       {/* プッシュ通知 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">プッシュ通知</h3>
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <h3 className="text-base font-bold text-slate-800 mb-4">プッシュ通知</h3>
         {isSupported ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">ブラウザプッシュ通知</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-medium text-sm text-slate-700">ブラウザプッシュ通知</p>
+                <p className="text-xs text-slate-400 mt-0.5">
                   {isSubscribed ? '通知が有効です' : '株価変動やレコメンドをブラウザで受け取れます'}
                 </p>
               </div>
@@ -175,7 +174,7 @@ export default function NotificationSettings() {
                 <button
                   onClick={handleDisable}
                   disabled={isPushLoading}
-                  className="px-4 py-2 text-red-600 border border-red-300 rounded hover:bg-red-50 disabled:opacity-50"
+                  className="px-4 py-1.5 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 text-sm font-medium transition-colors"
                 >
                   {isPushLoading ? '処理中...' : '無効にする'}
                 </button>
@@ -183,36 +182,36 @@ export default function NotificationSettings() {
                 <button
                   onClick={handleEnable}
                   disabled={isPushLoading || permission === 'denied'}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors"
                 >
                   {isPushLoading ? '処理中...' : '有効にする'}
                 </button>
               )}
             </div>
             {!import.meta.env.VITE_VAPID_PUBLIC_KEY && (
-              <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded mt-2">
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-lg">
                 VAPID公開鍵が設定されていません。<code className="text-xs">frontend/.env</code> に <code className="text-xs">VITE_VAPID_PUBLIC_KEY</code> を設定してください。
               </p>
             )}
             {permission === 'denied' && (
-              <p className="text-sm text-red-600">ブラウザの設定から通知を許可してください</p>
+              <p className="text-xs text-red-600">ブラウザの設定から通知を許可してください</p>
             )}
           </div>
         ) : (
-          <p className="text-yellow-800 bg-yellow-50 p-3 rounded">お使いのブラウザはプッシュ通知に対応していません。</p>
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-lg">お使いのブラウザはプッシュ通知に対応していません。</p>
         )}
       </div>
 
       {/* 通知内容の設定 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">通知内容の設定</h3>
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <h3 className="text-base font-bold text-slate-800 mb-4">通知内容の設定</h3>
         <div className="space-y-5">
           {/* レコメンド通知 */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="font-medium">レコメンド通知</p>
-                <p className="text-sm text-gray-500">AIおすすめ銘柄の通知</p>
+                <p className="font-medium text-sm text-slate-700">レコメンド通知</p>
+                <p className="text-xs text-slate-400 mt-0.5">AIおすすめ銘柄の通知</p>
               </div>
               <Toggle
                 checked={settings.recommend_enabled}
@@ -233,11 +232,11 @@ export default function NotificationSettings() {
           </div>
 
           {/* 価格変動通知 */}
-          <div className="border-t pt-5">
+          <div className="border-t border-slate-100 pt-5">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="font-medium">価格変動アラート</p>
-                <p className="text-sm text-gray-500">指定%以上の変動時に通知</p>
+                <p className="font-medium text-sm text-slate-700">価格変動アラート</p>
+                <p className="text-xs text-slate-400 mt-0.5">指定%以上の変動時に通知</p>
               </div>
               <Toggle
                 checked={settings.price_alert_enabled}
@@ -257,11 +256,11 @@ export default function NotificationSettings() {
           </div>
 
           {/* 出来高急増通知 */}
-          <div className="border-t pt-5">
+          <div className="border-t border-slate-100 pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">出来高急増通知</p>
-                <p className="text-sm text-gray-500">通常の指定倍以上の出来高時に通知</p>
+                <p className="font-medium text-sm text-slate-700">出来高急増通知</p>
+                <p className="text-xs text-slate-400 mt-0.5">通常の指定倍以上の出来高時に通知</p>
               </div>
               <Toggle
                 checked={settings.volume_surge_enabled}
@@ -281,11 +280,11 @@ export default function NotificationSettings() {
           </div>
 
           {/* 日次レポート */}
-          <div className="border-t pt-5">
+          <div className="border-t border-slate-100 pt-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">日次レポート</p>
-                <p className="text-sm text-gray-500">毎日の市場サマリーを通知</p>
+                <p className="font-medium text-sm text-slate-700">日次レポート</p>
+                <p className="text-xs text-slate-400 mt-0.5">毎日の市場サマリーを通知</p>
               </div>
               <Toggle
                 checked={settings.daily_report_enabled}
@@ -296,16 +295,16 @@ export default function NotificationSettings() {
         </div>
 
         {/* 保存ボタン */}
-        <div className="mt-6 flex items-center gap-4">
+        <div className="mt-6 pt-5 border-t border-slate-100 flex items-center gap-4">
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-colors"
           >
             {isSaving ? '保存中...' : '設定を保存'}
           </button>
           {saveMessage && (
-            <span className={`text-sm ${saveMessage.includes('失敗') ? 'text-red-600' : 'text-green-600'}`}>
+            <span className={`text-sm font-medium ${saveMessage.includes('失敗') ? 'text-red-600' : 'text-emerald-600'}`}>
               {saveMessage}
             </span>
           )}
