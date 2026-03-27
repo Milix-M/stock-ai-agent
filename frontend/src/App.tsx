@@ -9,6 +9,7 @@ import PatternsPage from './pages/PatternsPage'
 import PatternCreatePage from './pages/PatternCreatePage'
 import WatchlistPage from './pages/WatchlistPage'
 import NotificationSettingsPage from './pages/NotificationSettingsPage'
+import NotificationHistoryPage from './pages/NotificationHistoryPage'
 import AuthGuard from './components/AuthGuard'
 import Layout from './components/Layout'
 
@@ -27,6 +28,7 @@ function App() {
             <Route path="/patterns" element={<PatternsPage />} />
             <Route path="/patterns/new" element={<PatternCreatePage />} />
             <Route path="/watchlist" element={<WatchlistPage />} />
+            <Route path="/notifications" element={<NotificationHistoryPage />} />
             <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
           </Route>
         </Route>
