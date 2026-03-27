@@ -54,13 +54,22 @@ def fetch_daily_stock_prices(self):
 
 async def fetch_watchlist_prices_async():
     """ウォッチリスト銘柄のみ取得"""
-    from sqlalchemy import select
+    from sqlalchemy import select, text
     from app.models import Watchlist, Stock
     
     async with AsyncSessionLocal() as db:
-        # ウォッチリストにある銘柄を取得
+        # ウォッチリストにある銘柄コードを取得
         result = await db.execute(
-            select(Stock).join(Watchlist).distinct()
+            select(Watchlist.stock_code).distinct()
+        )
+        watchlist_codes = [row[0] for row in result.all()]
+        
+        if not watchlist_codes:
+            return []
+        
+        # 銘柄コードに該当するStockを取得
+        result = await db.execute(
+            select(Stock).where(Stock.code.in_(watchlist_codes))
         )
         stocks = result.scalars().all()
         

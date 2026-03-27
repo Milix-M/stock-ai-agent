@@ -81,8 +81,6 @@ def trigger_daily_analysis():
     日次の全ユーザーのパターンと照合するタスクをトリガー
     """
     try:
-        # キャッシュされたレコメンドをクリア
-        # 実際にはCelery Beatからgenerate_daily_recommendationsを呼び出す
         return {
             "status": "triggered",
             "message": "Daily analysis trigger sent"
@@ -92,3 +90,15 @@ def trigger_daily_analysis():
             "status": "error",
             "error": str(exc)
         }
+
+
+@shared_task
+def run_monitoring_agent():
+    """ウォッチリスト監視エージェントタスク（スタブ）"""
+    return {"status": "success", "message": "Monitoring agent not yet configured"}
+
+
+@shared_task
+def run_analysis_agent():
+    """分析エージェントタスク（スタブ）"""
+    return {"status": "success", "message": "Analysis agent not yet configured"}
