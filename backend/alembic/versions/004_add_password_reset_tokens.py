@@ -19,6 +19,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    conn = op.get_bind()
+    if conn.dialect.has_table(conn, 'password_reset_tokens'):
+        return
     op.create_table(
         'password_reset_tokens',
         sa.Column('id', sa.String(36), primary_key=True),
