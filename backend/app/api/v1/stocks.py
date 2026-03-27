@@ -36,6 +36,27 @@ async def search_stocks(
     ]
 
 
+@router.get("/{code}/detail")
+async def get_stock_detail(
+    code: str,
+    current_user = Depends(get_current_user)
+):
+    """銘柄詳細情報を取得（基本情報＋株価データ）"""
+    info_result = await stock_search_service.get_stock_info(code)
+    price_data = await stock_search_service.get_price_data(code)
+
+    if not info_result and not price_data:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    return {
+        "code": code,
+        "name": info_result.name if info_result else None,
+        "market": info_result.market if info_result else None,
+        "sector": info_result.sector if info_result else None,
+        **(price_data or {}),
+    }
+
+
 @router.get("/{code}/price")
 async def get_stock_price(
     code: str,
