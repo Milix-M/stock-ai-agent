@@ -147,6 +147,29 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
       items.push(`時価総額: ${filters.market_cap_max}以下`)
     }
 
+    // イベント・情勢
+    const eventKeywords = parseResult.parsed.event_keywords
+    if (eventKeywords && eventKeywords.length > 0) {
+      items.push(`関連イベント: ${eventKeywords.join('、')}`)
+    }
+
+    // 影響セクター
+    const affectedSectors = parseResult.parsed.affected_sectors
+    if (affectedSectors && affectedSectors.length > 0) {
+      items.push(`影響セクター: ${affectedSectors.join('、')}`)
+    }
+
+    // 価格トレンド
+    const priceTrend = parseResult.parsed.price_trend
+    const trendPeriod = parseResult.parsed.trend_period
+    if (priceTrend) {
+      const trendLabels: Record<string, string> = { declining: '下落', rising: '上昇', volatile: 'ボラティリティ高' }
+      const periodLabels: Record<string, string> = { '1mo': '1ヶ月', '3mo': '3ヶ月', '6mo': '半年', '1y': '1年' }
+      const trendText = trendLabels[priceTrend] || priceTrend
+      const periodText = trendPeriod ? `（${periodLabels[trendPeriod] || trendPeriod}）` : ''
+      items.push(`トレンド: ${trendText}${periodText}`)
+    }
+
     return items
   }
 

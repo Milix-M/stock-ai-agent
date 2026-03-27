@@ -94,7 +94,25 @@ export default function PatternList() {
       items.push(`変動率: ${filters.price_change_max}%以下`)
     }
 
-    return items.length > 0 ? items.join(' · ') : '条件なし'
+    return items
+  }
+
+  const renderEventInfo = (parsed: any): string | null => {
+    const parts: string[] = []
+    if (parsed.event_keywords?.length > 0) {
+      parts.push(`イベント: ${parsed.event_keywords.join('、')}`)
+    }
+    if (parsed.affected_sectors?.length > 0) {
+      parts.push(`影響セクター: ${parsed.affected_sectors.join('、')}`)
+    }
+    if (parsed.price_trend) {
+      const trendLabels: Record<string, string> = { declining: '下落', rising: '上昇', volatile: 'ボラティリティ高' }
+      const periodLabels: Record<string, string> = { '1mo': '1ヶ月', '3mo': '3ヶ月', '6mo': '半年', '1y': '1年' }
+      const trendText = trendLabels[parsed.price_trend] || parsed.price_trend
+      const periodText = parsed.trend_period ? `（${periodLabels[parsed.trend_period] || parsed.trend_period}）` : ''
+      parts.push(`トレンド: ${trendText}${periodText}`)
+    }
+    return parts.length > 0 ? parts.join(' · ') : null
   }
 
   const formatMarketCap = (value: number): string => {
@@ -163,7 +181,7 @@ export default function PatternList() {
                       <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
                         {getStrategyLabel(pattern.parsed_filters?.strategy)}
                       </span>
-                      <span>{renderFilters(pattern.parsed_filters?.filters)}</span>
+                      <span>{renderFilters(pattern.parsed_filters?.filters) || '条件なし'}{renderEventInfo(pattern.parsed_filters) ? ` · ${renderEventInfo(pattern.parsed_filters)}` : ''}</span>
                       {pattern.parsed_filters?.sectors && pattern.parsed_filters.sectors.length > 0 && (
                         <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded text-xs">
                           {pattern.parsed_filters.sectors.join(' · ')}
