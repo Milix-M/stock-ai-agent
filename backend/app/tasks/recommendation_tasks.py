@@ -55,6 +55,7 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
         filters = parsed.get("filters", {})
         target_sectors = parsed.get("sectors", [])
         affected_sectors = parsed.get("affected_sectors", [])
+        event_keywords = parsed.get("event_keywords", [])
         all_sectors = list(dict.fromkeys(target_sectors + affected_sectors))
         
         # 3. セクターに基づいて銘柄を追加
@@ -149,14 +150,22 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                             score += 1
                             matched.append(f"ボラティリティ高: {trend_data['volatility']:.1f}%（{trend_period}）")
                 
-                # 影響セクターマッチング
-                if all_sectors:
-                    if stock_info and stock_info.sector and stock_info.sector in all_sectors:
-                        score += 1
-                        matched.append(f"セクター: {stock_info.sector}")
+                # 影響セクターマッチング（イベント駆動型）
+                # 「影響が少ない」を判定: 影響セクター外なら加点、内なら減点
+                is_event_driven = bool(all_sectors or event_keywords)
+                if all_sectors and stock_info and stock_info.sector:
+                    if stock_info.sector in all_sectors:
+                        score -= 1  # 影響を受けるセクターは減点
+                        matched.append(f"セクター: {stock_info.sector}（影響あり）")
+                    else:
+                        score += 1  # 影響セクター外は加点
+                        matched.append(f"セクター: {stock_info.sector}（影響なし）")
                 
-                # スコアが1以上あればレコメンド（条件が少ないパターンにも対応）
-                if score >= 1:
+                # イベント駆動型で条件がない場合、全銘柄を候補に（score >= 0）
+                # 通常型は score >= 1 で採用
+                min_score = 0 if is_event_driven else 1
+                
+                if score >= min_score:
                     trend_info = ""
                     if price_trend:
                         if not trend_data:
