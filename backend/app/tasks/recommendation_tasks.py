@@ -51,14 +51,17 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
         target_codes.extend(watchlist_codes)
         
         # 2. パターンからセクター情報を抽出
-        filters = pattern.parsed_filters.get("filters", {})
-        target_sectors = filters.get("sectors", [])  # パターンに含まれる業種
+        parsed = pattern.parsed_filters
+        filters = parsed.get("filters", {})
+        target_sectors = parsed.get("sectors", [])
+        affected_sectors = parsed.get("affected_sectors", [])
+        all_sectors = list(dict.fromkeys(target_sectors + affected_sectors))
         
         # 3. セクターに基づいて銘柄を追加
-        if target_sectors:
+        if all_sectors:
             sector_codes = [
                 s["code"] for s in stock_search_service._popular_stocks
-                if s.get("sector") in target_sectors and s["code"] not in target_codes
+                if s.get("sector") in all_sectors and s["code"] not in target_codes
             ]
             target_codes.extend(sector_codes)
         
@@ -126,9 +129,40 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                         score += 1
                         matched.append(f"時価総額: {cap:,}円")
                 
+                # 価格トレンド評価
+                price_trend = parsed.get("price_trend")
+                trend_period = parsed.get("trend_period") or "3mo"
+                if price_trend:
+                    trend_data = await stock_search_service.get_trend_data(code, trend_period)
+                    if trend_data:
+                        tp = trend_data["trend_percent"]
+                        if price_trend == "declining" and tp < 0:
+                            score += 1
+                            matched.append(f"下落傾向: {tp:+.1f}%（{trend_period}）")
+                        elif price_trend == "rising" and tp > 0:
+                            score += 1
+                            matched.append(f"上昇傾向: {tp:+.1f}%（{trend_period}）")
+                        elif price_trend == "volatile" and trend_data.get("volatility", 0) > 10:
+                            score += 1
+                            matched.append(f"ボラティリティ高: {trend_data['volatility']:.1f}%（{trend_period}）")
+                
+                # 影響セクターマッチング
+                if all_sectors:
+                    stock_info = await stock_search_service.get_stock_info(code)
+                    if stock_info and stock_info.sector and stock_info.sector in all_sectors:
+                        score += 1
+                        matched.append(f"セクター: {stock_info.sector}")
+                
                 # スコアが1以上あればレコメンド（条件が少ないパターンにも対応）
                 if score >= 1:
-                    stock_info = await stock_search_service.get_stock_info(code)
+                    if not stock_info:
+                        stock_info = await stock_search_service.get_stock_info(code)
+                    trend_info = ""
+                    if price_trend:
+                        if not trend_data:
+                            trend_data = await stock_search_service.get_trend_data(code, trend_period)
+                        if trend_data:
+                            trend_info = f"（{trend_period}間: {trend_data['trend_percent']:+.1f}%）"
                     results.append({
                         "stock_code": code,
                         "stock_name": stock_info.name if stock_info else code,
@@ -137,7 +171,8 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                         "matched_criteria": matched,
                         "current_price": price_data.get("current_price"),
                         "change_percent": price_data.get("change_percent"),
-                        "reason": f"{stock_info.name if stock_info else code}は{pattern.name}に適合（{', '.join(matched)}）"
+                        "reason": f"{stock_info.name if stock_info else code}は{pattern.name}に適合（{', '.join(matched)}）",
+                        "trend_info": trend_info if price_trend else None,
                     })
                     
             except Exception as e:

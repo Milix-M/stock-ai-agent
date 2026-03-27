@@ -181,7 +181,42 @@ class StockSearchService:
                 })
             
             return prices
-            
+
         except Exception as e:
             print(f"Error fetching historical prices for {code}: {e}")
+            return None
+
+    async def get_trend_data(self, code: str, period: str = "1mo") -> Optional[Dict[str, Any]]:
+        """
+        指定期間の価格トレンドを取得
+        """
+        try:
+            ticker = yf.Ticker(f"{code}.T")
+            hist = ticker.history(period=period)
+
+            if hist.empty or len(hist) < 2:
+                return None
+
+            start_price = float(hist.iloc[0]["Close"])
+            end_price = float(hist.iloc[-1]["Close"])
+            trend_percent = ((end_price - start_price) / start_price) * 100
+
+            # ボラティリティ計算
+            high = float(hist["High"].max())
+            low = float(hist["Low"].min())
+            volatility = ((high - low) / start_price) * 100
+
+            return {
+                "code": code,
+                "period": period,
+                "trend_percent": round(float(trend_percent), 2),
+                "start_price": start_price,
+                "end_price": end_price,
+                "high": high,
+                "low": low,
+                "volatility": round(float(volatility), 2),
+            }
+
+        except Exception as e:
+            print(f"Error fetching trend for {code}: {e}")
             return None

@@ -39,7 +39,7 @@ class LLMService:
         
         以下のJSON形式で出力してください：
         {
-            "strategy": "戦略タイプ (dividend_focus|growth|value|technical|hybrid)",
+            "strategy": "戦略タイプ (dividend_focus|growth|value|technical|hybrid|event_driven)",
             "filters": {
                 "per_min": float or null,
                 "per_max": float or null,
@@ -53,6 +53,10 @@ class LLMService:
                 "price_change_max": float or null
             },
             "sectors": ["業種1", "業種2"],  // 言及された業種・セクター
+            "event_keywords": ["キーワード1", "キーワード2"],  // イベント・情勢に関連するキーワード
+            "affected_sectors": ["影響を受ける業種1"],  // イベントの影響を受ける業種
+            "price_trend": "declining" or "rising" or "volatile" or null,  // 価格トレンドの方向性
+            "trend_period": "1mo" or "3mo" or "6mo" or "1y" or null,  // トレンドの期間
             "sort_by": "per|pbr|dividend_yield|market_cap|price_change",
             "sort_order": "asc|desc",
             "keywords": [抽出したキーワード]
@@ -62,6 +66,23 @@ class LLMService:
         - 数値は必ず数値型で出力（文字列ではない）
         - 単位は削除（"倍"、"%"、"円"など）
         - 不明な条件はnull
+        - 価格トレンドの判定:
+          - "下がっている/下落/安くなった/落ち込んでいる" → price_trend: "declining"
+          - "上がっている/上昇/高くなった/堅調" → price_trend: "rising"
+          - "乱高下/ボラティリティ/激しく動いている" → price_trend: "volatile"
+        - トレンド期間の判定:
+          - "最近/直近/今月" → trend_period: "1mo"
+          - "中期的/ここ数ヶ月/3ヶ月" → trend_period: "3mo"
+          - "半年/6ヶ月" → trend_period: "6mo"
+          - "1年間/ここ1年/過去1年" → trend_period: "1y"
+        - イベント・情勢に関連するセクター推定:
+          - "中東/地政学リスク/戦争/紛争" → affected_sectors: ["石油・石炭", "海運", "航空"]
+          - "円安/為替/ドル高" → affected_sectors: ["輸出関連", "自動車", "電気機器"]
+          - "金利/金融政策/日銀" → affected_sectors: ["銀行", "保険", "証券"]
+          - "AI/半導体/テクノロジー" → affected_sectors: ["電気機器", "情報・通信"]
+          - "少子高齢化/医療/介護" → affected_sectors: ["医薬品", "サービス"]
+          - "再エネ/脱炭素/環境" → affected_sectors: ["電気機器", "化学"]
+        - イベントが含まれる場合、strategyを"event_driven"に設定
         - "銀行株"、"銀行セクター"などと言及された場合、sectorsに"銀行"を追加
         - "製薬"、"医薬品"、"バイオ"などと言及された場合、sectorsに"医薬品"を追加
         - "IT"、"テクノロジー"、"半導体"などと言及された場合、sectorsに"電気機器"を追加
@@ -86,6 +107,11 @@ class LLMService:
             # デフォルト値設定
             parsed.setdefault("strategy", "hybrid")
             parsed.setdefault("filters", {})
+            parsed.setdefault("sectors", [])
+            parsed.setdefault("event_keywords", [])
+            parsed.setdefault("affected_sectors", [])
+            parsed.setdefault("price_trend", None)
+            parsed.setdefault("trend_period", None)
             parsed.setdefault("sort_by", "dividend_yield")
             parsed.setdefault("sort_order", "desc")
             parsed.setdefault("keywords", [])
@@ -102,6 +128,10 @@ class LLMService:
         filters = {}
         keywords = []
         sectors = []
+        event_keywords = []
+        affected_sectors = []
+        price_trend = None
+        trend_period = None
         
         # 簡易的なキーワード抽出
         text = user_input.lower()
@@ -121,6 +151,45 @@ class LLMService:
             if div_matches:
                 filters["dividend_yield_min"] = int(div_matches[0])
                 keywords.append("高配当")
+        
+        # 価格トレンド判定
+        if any(w in user_input for w in ["下が", "下落", "安く", "落ち込", "軟調", "安値"]):
+            price_trend = "declining"
+            keywords.append("下落")
+        elif any(w in user_input for w in ["上が", "上昇", "高く", "堅調", "高値"]):
+            price_trend = "rising"
+            keywords.append("上昇")
+        elif any(w in user_input for w in ["乱高下", "ボラティリティ", "激しく"]):
+            price_trend = "volatile"
+            keywords.append("ボラティリティ")
+        
+        # トレンド期間判定
+        if any(w in user_input for w in ["最近", "直近", "今月", "ここ1ヶ月"]):
+            trend_period = "1mo"
+        elif any(w in user_input for w in ["数ヶ月", "3ヶ月", "中期的"]):
+            trend_period = "3mo"
+        elif any(w in user_input for w in ["半年", "6ヶ月"]):
+            trend_period = "6mo"
+        elif any(w in user_input for w in ["1年", "過去1年"]):
+            trend_period = "1y"
+        
+        # イベント・情勢のキーワード抽出とセクター推定
+        if any(w in user_input for w in ["中東", "地政学", "戦争", "紛争", "テロ", "イスラエル", "イラン"]):
+            event_keywords.extend(["中東", "地政学リスク"])
+            affected_sectors.extend(["石油・石炭", "海運", "航空"])
+            keywords.extend(["中東", "地政学"])
+        if any(w in user_input for w in ["円安", "為替", "ドル高", "ドル円"]):
+            event_keywords.extend(["為替", "円安"])
+            affected_sectors.extend(["輸出関連", "自動車", "電気機器"])
+            keywords.append("為替")
+        if any(w in user_input for w in ["金利", "利上げ", "日銀", "金融政策"]):
+            event_keywords.extend(["金利", "金融政策"])
+            affected_sectors.extend(["銀行", "保険", "証券"])
+            keywords.append("金利")
+        if any(w in user_input for w in ["AI", "半導体", "テクノロジー"]):
+            event_keywords.extend(["テクノロジー"])
+            affected_sectors.extend(["電気機器", "情報・通信"])
+            keywords.append("テクノロジー")
         
         # セクター抽出
         if any(word in user_input for word in ["銀行", "金融", "銀行株"]):
@@ -148,19 +217,31 @@ class LLMService:
             sectors.append("輸送用機器")
             keywords.append("自動車")
         
+        # 重複排除
+        affected_sectors = list(dict.fromkeys(affected_sectors))
+        event_keywords = list(dict.fromkeys(event_keywords))
+        sectors = list(dict.fromkeys(sectors))
+        keywords = list(dict.fromkeys(keywords))
+        
         # 戦略判定
         strategy = "hybrid"
-        if "配当" in user_input:
+        if event_keywords:
+            strategy = "event_driven"
+        elif "配当" in user_input:
             strategy = "dividend_focus"
-        elif "成長" in user_input or "グロース" in user_input:
+        elif any(w in user_input for w in ["成長", "グロース"]):
             strategy = "growth"
-        elif "割安" in user_input or "バリュー" in user_input:
+        elif any(w in user_input for w in ["割安", "バリュー"]):
             strategy = "value"
         
         return {
             "strategy": strategy,
             "filters": filters,
             "sectors": sectors,
+            "event_keywords": event_keywords,
+            "affected_sectors": affected_sectors,
+            "price_trend": price_trend,
+            "trend_period": trend_period,
             "sort_by": "dividend_yield" if strategy == "dividend_focus" else "per",
             "sort_order": "asc" if strategy == "value" else "desc",
             "keywords": keywords
