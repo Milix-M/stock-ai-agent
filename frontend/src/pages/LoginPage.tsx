@@ -75,6 +75,10 @@ export default function LoginPage() {
           アカウントをお持ちでない方は
           <a href="/register" className="text-blue-600 hover:underline">新規登録</a>
         </p>
+        
+        <p className="mt-2 text-center text-sm text-gray-600">
+          <a href="/password-reset" className="text-blue-600 hover:underline">パスワードをお忘れですか？</a>
+        </p>
       </div>
     </div>
   )

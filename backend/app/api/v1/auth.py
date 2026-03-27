@@ -12,7 +12,8 @@ from app.core.security import (
     get_user_by_email,
     decode_token,
 )
-from app.schemas import RegisterRequest, Token, LoginRequest, RefreshTokenRequest
+from app.models.models import User, PasswordResetToken
+from app.schemas import RegisterRequest, Token, LoginRequest, RefreshTokenRequest, PasswordResetRequest, PasswordResetConfirm
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -140,3 +141,104 @@ async def refresh_token(
         "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
+
+
+@router.post("/password-reset/request")
+@limiter.limit("5/minute")
+async def request_password_reset(
+    request: Request,
+    body: PasswordResetRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """パスワードリセット要求（開発モード：トークンをレスポンスで返す）"""
+    import secrets
+    from datetime import timedelta
+    from sqlalchemy import select
+
+    user = await get_user_by_email(db, body.email)
+
+    if user:
+        # 既存の未使用トークンを無効化
+        stmt = select(PasswordResetToken).where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used == False,
+        )
+        result = await db.execute(stmt)
+        for old_token in result.scalars().all():
+            old_token.used = True
+
+        # 新しいリセットトークン生成
+        reset_token_str = secrets.token_urlsafe(32)
+        reset_token = PasswordResetToken(
+            id=str(__import__('uuid').uuid4()),
+            user_id=user.id,
+            token=reset_token_str,
+            expires_at=datetime.utcnow() + timedelta(minutes=30),
+        )
+        db.add(reset_token)
+        await db.commit()
+
+        return {
+            "message": "リセットトークンを生成しました（開発モード）",
+            "reset_token": reset_token_str,
+            "dev_mode": True,
+        }
+
+    # メールアドレスが存在しなくても同じレスポンス（セキュリティのため）
+    return {
+        "message": "リセットトークンを生成しました（開発モード）",
+        "reset_token": None,
+        "dev_mode": True,
+    }
+
+
+@router.post("/password-reset/confirm")
+async def confirm_password_reset(
+    body: PasswordResetConfirm,
+    db: AsyncSession = Depends(get_db)
+):
+    """パスワードリセット確認"""
+    from sqlalchemy import select
+    from app.core.security import get_password_hash
+
+    if len(body.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="パスワードは8文字以上必要です"
+        )
+
+    stmt = select(PasswordResetToken).where(
+        PasswordResetToken.token == body.token,
+        PasswordResetToken.used == False,
+    )
+    result = await db.execute(stmt)
+    reset_token = result.scalar_one_or_none()
+
+    if not reset_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="無効なリセットトークンです"
+        )
+
+    if reset_token.expires_at < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="リセットトークンの有効期限が切れています"
+        )
+
+    # ユーザーのパスワードを更新
+    user_stmt = select(User).where(User.id == reset_token.user_id)
+    user_result = await db.execute(user_stmt)
+    user = user_result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ユーザーが見つかりません"
+        )
+
+    user.password_hash = get_password_hash(body.new_password)
+    reset_token.used = True
+    await db.commit()
+
+    return {"message": "パスワードを更新しました"}

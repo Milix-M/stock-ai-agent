@@ -12,6 +12,8 @@ import NotificationSettingsPage from './pages/NotificationSettingsPage'
 import NotificationHistoryPage from './pages/NotificationHistoryPage'
 import AuthGuard from './components/AuthGuard'
 import Layout from './components/Layout'
+import PasswordResetRequestPage from './pages/PasswordResetRequestPage'
+import PasswordResetConfirmPage from './pages/PasswordResetConfirmPage'
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/password-reset" element={<PasswordResetRequestPage />} />
+        <Route path="/password-reset/confirm" element={<PasswordResetConfirmPage />} />
         <Route element={<AuthGuard />}>
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<DashboardPage />} />

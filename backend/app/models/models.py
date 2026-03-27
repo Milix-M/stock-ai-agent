@@ -187,3 +187,18 @@ class NotificationSetting(Base):
 
     def __repr__(self) -> str:
         return f"<NotificationSetting(user={self.user_id})>"
+
+
+class PasswordResetToken(Base):
+    """パスワードリセットトークンモデル"""
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    used: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self) -> str:
+        return f"<PasswordResetToken(user_id={self.user_id})>"

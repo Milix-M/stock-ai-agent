@@ -53,4 +53,14 @@ export const authApi = {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
   },
+
+  requestPasswordReset: async (email: string): Promise<{ message: string; reset_token: string | null; dev_mode: boolean }> => {
+    const response = await api.post('/auth/password-reset/request', { email })
+    return response.data
+  },
+
+  confirmPasswordReset: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await api.post('/auth/password-reset/confirm', { token, new_password: newPassword })
+    return response.data
+  },
 }
