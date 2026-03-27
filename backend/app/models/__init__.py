@@ -7,6 +7,7 @@ from app.models.models import (
     Watchlist,
     PushSubscription,
     Notification,
+    NotificationSetting,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "Watchlist",
     "PushSubscription",
     "Notification",
+    "NotificationSetting",
 ]

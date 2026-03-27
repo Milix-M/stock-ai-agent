@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import String, Boolean, DateTime, Text, Numeric, BigInteger, ForeignKey, JSON, UniqueConstraint
+from sqlalchemy import String, Boolean, DateTime, Text, Numeric, BigInteger, ForeignKey, JSON, UniqueConstraint, Float
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -155,3 +155,35 @@ class Notification(Base):
 
     def __repr__(self) -> str:
         return f"<Notification(user={self.user_id}, title={self.title})>"
+
+
+class NotificationSetting(Base):
+    """通知設定モデル"""
+    __tablename__ = "notification_settings"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+
+    # レコメンド通知
+    recommend_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    recommend_min_score: Mapped[Optional[float]] = mapped_column(Numeric(3, 2), nullable=True, default=0.7)
+
+    # 価格変動通知
+    price_alert_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    price_alert_threshold: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True, default=5.0)
+
+    # 出来高急増通知
+    volume_surge_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    volume_surge_multiplier: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True, default=2.0)
+
+    # 日次レポート
+    daily_report_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # ブラウザプッシュ購読情報
+    push_subscription: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self) -> str:
+        return f"<NotificationSetting(user={self.user_id})>"

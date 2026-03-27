@@ -131,6 +131,37 @@ export const markNotificationAsRead = async (notificationId: string): Promise<vo
   await api.post(`/notifications/${notificationId}/read`)
 }
 
+// --- 通知設定 ---
+
+export interface NotificationSettings {
+  recommend_enabled: boolean
+  recommend_min_score: number
+  price_alert_enabled: boolean
+  price_alert_threshold: number
+  volume_surge_enabled: boolean
+  volume_surge_multiplier: number
+  daily_report_enabled: boolean
+}
+
+export const getNotificationSettings = async (): Promise<NotificationSettings> => {
+  const response = await api.get('/notifications/settings')
+  return response.data
+}
+
+export const updateNotificationSettings = async (settings: Partial<NotificationSettings>): Promise<void> => {
+  await api.put('/notifications/settings', settings)
+}
+
+// --- Push購読（settingsベース） ---
+
+export const subscribePush = async (subscription: { endpoint: string; p256dh: string; auth: string }): Promise<void> => {
+  await api.post('/notifications/subscribe', subscription)
+}
+
+export const unsubscribePush = async (endpoint: string): Promise<void> => {
+  await api.post('/notifications/unsubscribe', { endpoint })
+}
+
 // Base64変換ユーティリティ
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4)

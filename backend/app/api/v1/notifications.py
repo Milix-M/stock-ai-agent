@@ -99,6 +99,83 @@ async def mark_notification_read(
     return {"message": "Marked as read"}
 
 
+# --- 通知設定 endpoints ---
+
+from app.models import NotificationSetting
+from sqlalchemy import select as sa_select
+
+
+class NotificationSettingsResponse(BaseModel):
+    recommend_enabled: bool = True
+    recommend_min_score: float = 0.7
+    price_alert_enabled: bool = True
+    price_alert_threshold: float = 5.0
+    volume_surge_enabled: bool = True
+    volume_surge_multiplier: float = 2.0
+    daily_report_enabled: bool = True
+
+
+class NotificationSettingsUpdate(BaseModel):
+    recommend_enabled: bool | None = None
+    recommend_min_score: float | None = None
+    price_alert_enabled: bool | None = None
+    price_alert_threshold: float | None = None
+    volume_surge_enabled: bool | None = None
+    volume_surge_multiplier: float | None = None
+    daily_report_enabled: bool | None = None
+
+
+@router.get("/settings")
+async def get_notification_settings(
+    current_user=Depends(get_current_user),
+    db: AsyncSession=Depends(get_db),
+):
+    """通知設定を取得（未設定ならデフォルト返す）"""
+    result = await db.execute(
+        sa_select(NotificationSetting).where(NotificationSetting.user_id == current_user.id)
+    )
+    setting = result.scalar_one_or_none()
+
+    if not setting:
+        return NotificationSettingsResponse()
+
+    return NotificationSettingsResponse(
+        recommend_enabled=setting.recommend_enabled,
+        recommend_min_score=float(setting.recommend_min_score) if setting.recommend_min_score is not None else 0.7,
+        price_alert_enabled=setting.price_alert_enabled,
+        price_alert_threshold=float(setting.price_alert_threshold) if setting.price_alert_threshold is not None else 5.0,
+        volume_surge_enabled=setting.volume_surge_enabled,
+        volume_surge_multiplier=float(setting.volume_surge_multiplier) if setting.volume_surge_multiplier is not None else 2.0,
+        daily_report_enabled=setting.daily_report_enabled,
+    )
+
+
+@router.put("/settings")
+async def update_notification_settings(
+    request: NotificationSettingsUpdate,
+    current_user=Depends(get_current_user),
+    db: AsyncSession=Depends(get_db),
+):
+    """通知設定を更新（upsert）"""
+    result = await db.execute(
+        sa_select(NotificationSetting).where(NotificationSetting.user_id == current_user.id)
+    )
+    setting = result.scalar_one_or_none()
+
+    if not setting:
+        setting = NotificationSetting(user_id=current_user.id)
+        db.add(setting)
+
+    update_data = request.model_dump(exclude_none=True)
+    for key, value in update_data.items():
+        setattr(setting, key, value)
+
+    await db.commit()
+    await db.refresh(setting)
+
+    return {"message": "Settings updated successfully"}
+
+
 # テスト用エンドポイント（開発時のみ）
 @router.post("/test")
 async def send_test_notification(

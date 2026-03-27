@@ -1,30 +1,97 @@
 import { useEffect, useState } from 'react'
-import { 
-  requestNotificationPermission, 
+import {
+  requestNotificationPermission,
   subscribeToPushNotifications,
-  unsubscribeFromPushNotifications 
+  unsubscribeFromPushNotifications,
+  getNotificationSettings,
+  updateNotificationSettings,
+  type NotificationSettings,
 } from '../services/notification'
+
+const defaultSettings: NotificationSettings = {
+  recommend_enabled: true,
+  recommend_min_score: 0.7,
+  price_alert_enabled: true,
+  price_alert_threshold: 5.0,
+  volume_surge_enabled: true,
+  volume_surge_multiplier: 2.0,
+  daily_report_enabled: true,
+}
+
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        checked ? 'bg-blue-600' : 'bg-gray-300'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          checked ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  )
+}
+
+function Slider({ value, min, max, step, onChange, label }: {
+  value: number; min: number; max: number; step: number
+  onChange: (v: number) => void; label: string
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="flex-1 accent-blue-600"
+      />
+      <span className="text-sm text-gray-600 w-20 text-right">{label}</span>
+    </div>
+  )
+}
 
 export default function NotificationSettings() {
   const [isSupported, setIsSupported] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isPushLoading, setIsPushLoading] = useState(false)
+  const [settings, setSettings] = useState<NotificationSettings>(defaultSettings)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
   useEffect(() => {
+    fetchSettings()
     checkSupport()
   }, [])
+
+  const fetchSettings = async () => {
+    try {
+      const s = await getNotificationSettings()
+      setSettings({ ...defaultSettings, ...s })
+    } catch {
+      // デフォルトのまま
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const checkSupport = () => {
     if (!('Notification' in window)) {
       setIsSupported(false)
       return
     }
-    
     setIsSupported(true)
     setPermission(Notification.permission)
-    
-    // 既存の購読を確認
     checkExistingSubscription()
   }
 
@@ -38,103 +105,205 @@ export default function NotificationSettings() {
     }
   }
 
-  const handleEnable = async () => {
-    setIsLoading(true)
+  const handleSave = async () => {
+    setIsSaving(true)
+    setSaveMessage(null)
     try {
-      // 許可をリクエスト
+      await updateNotificationSettings(settings)
+      setSaveMessage('設定を保存しました')
+      setTimeout(() => setSaveMessage(null), 3000)
+    } catch {
+      setSaveMessage('保存に失敗しました')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleEnable = async () => {
+    setIsPushLoading(true)
+    try {
       const granted = await requestNotificationPermission()
       if (!granted) {
         alert('通知の許可が必要です')
         return
       }
-      
       setPermission('granted')
-      
-      // プッシュ通知を購読
       const subscribed = await subscribeToPushNotifications()
-      if (subscribed) {
-        setIsSubscribed(true)
-        alert('プッシュ通知を有効にしました！')
-      }
-    } catch (error) {
+      if (subscribed) setIsSubscribed(true)
+    } catch {
       alert('設定に失敗しました')
     } finally {
-      setIsLoading(false)
+      setIsPushLoading(false)
     }
   }
 
   const handleDisable = async () => {
-    setIsLoading(true)
+    setIsPushLoading(true)
     try {
       const success = await unsubscribeFromPushNotifications()
-      if (success) {
-        setIsSubscribed(false)
-        alert('プッシュ通知を無効にしました')
-      }
-    } catch (error) {
+      if (success) setIsSubscribed(false)
+    } catch {
       alert('解除に失敗しました')
     } finally {
-      setIsLoading(false)
+      setIsPushLoading(false)
     }
   }
 
-  if (!isSupported) {
-    return (
-      <div className="bg-yellow-50 p-4 rounded-lg">
-        <p className="text-yellow-800">
-          お使いのブラウザはプッシュ通知に対応していません。
-        </p>
-      </div>
-    )
+  const update = <K extends keyof NotificationSettings>(key: K, value: NotificationSettings[K]) => {
+    setSettings((prev) => ({ ...prev, [key]: value }))
+  }
+
+  if (isLoading) {
+    return <div className="bg-white rounded-lg shadow p-6"><p className="text-center py-4 text-gray-500">読み込み中...</p></div>
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4">通知設定</h3>
-      
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium">プッシュ通知</p>
-            <p className="text-sm text-gray-500">
-              {isSubscribed 
-                ? '通知が有効です' 
-                : '株価変動やレコメンドを受け取れます'}
-            </p>
+    <div className="space-y-6">
+      {/* プッシュ通知 */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">プッシュ通知</h3>
+        {isSupported ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">ブラウザプッシュ通知</p>
+                <p className="text-sm text-gray-500">
+                  {isSubscribed ? '通知が有効です' : '株価変動やレコメンドをブラウザで受け取れます'}
+                </p>
+              </div>
+              {isSubscribed ? (
+                <button
+                  onClick={handleDisable}
+                  disabled={isPushLoading}
+                  className="px-4 py-2 text-red-600 border border-red-300 rounded hover:bg-red-50 disabled:opacity-50"
+                >
+                  {isPushLoading ? '処理中...' : '無効にする'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleEnable}
+                  disabled={isPushLoading || permission === 'denied'}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isPushLoading ? '処理中...' : '有効にする'}
+                </button>
+              )}
+            </div>
+            {permission === 'denied' && (
+              <p className="text-sm text-red-600">ブラウザの設定から通知を許可してください</p>
+            )}
           </div>
-          
-          {isSubscribed ? (
-            <button
-              onClick={handleDisable}
-              disabled={isLoading}
-              className="px-4 py-2 text-red-600 border border-red-300 rounded hover:bg-red-50 disabled:opacity-50"
-            >
-              {isLoading ? '処理中...' : '無効にする'}
-            </button>
-          ) : (
-            <button
-              onClick={handleEnable}
-              disabled={isLoading || permission === 'denied'}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isLoading ? '処理中...' : '有効にする'}
-            </button>
-          )}
-        </div>
-        
-        {permission === 'denied' && (
-          <p className="text-sm text-red-600">
-            ブラウザの設定から通知を許可してください
-          </p>
+        ) : (
+          <p className="text-yellow-800 bg-yellow-50 p-3 rounded">お使いのブラウザはプッシュ通知に対応していません。</p>
         )}
-        
-        <div className="border-t pt-4 mt-4">
-          <p className="text-sm text-gray-600 mb-2">通知内容：</p>
-          <ul className="text-sm text-gray-500 list-disc list-inside space-y-1">
-            <li>株価変動アラート</li>
-            <li>おすすめ銘柄のレコメンド</li>
-            <li>ウォッチリスト銘柄の更新</li>
-          </ul>
+      </div>
+
+      {/* 通知内容の設定 */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">通知内容の設定</h3>
+        <div className="space-y-5">
+          {/* レコメンド通知 */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="font-medium">レコメンド通知</p>
+                <p className="text-sm text-gray-500">AIおすすめ銘柄の通知</p>
+              </div>
+              <Toggle
+                checked={settings.recommend_enabled}
+                onChange={(v) => update('recommend_enabled', v)}
+                disabled={!settings.recommend_enabled && !isSubscribed}
+              />
+            </div>
+            {settings.recommend_enabled && (
+              <Slider
+                value={settings.recommend_min_score}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                onChange={(v) => update('recommend_min_score', v)}
+                label={`最低スコア: ${settings.recommend_min_score}`}
+              />
+            )}
+          </div>
+
+          {/* 価格変動通知 */}
+          <div className="border-t pt-5">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="font-medium">価格変動アラート</p>
+                <p className="text-sm text-gray-500">指定%以上の変動時に通知</p>
+              </div>
+              <Toggle
+                checked={settings.price_alert_enabled}
+                onChange={(v) => update('price_alert_enabled', v)}
+              />
+            </div>
+            {settings.price_alert_enabled && (
+              <Slider
+                value={settings.price_alert_threshold}
+                min={1}
+                max={20}
+                step={0.5}
+                onChange={(v) => update('price_alert_threshold', v)}
+                label={`閾値: ${settings.price_alert_threshold}%`}
+              />
+            )}
+          </div>
+
+          {/* 出来高急増通知 */}
+          <div className="border-t pt-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">出来高急増通知</p>
+                <p className="text-sm text-gray-500">通常の指定倍以上の出来高時に通知</p>
+              </div>
+              <Toggle
+                checked={settings.volume_surge_enabled}
+                onChange={(v) => update('volume_surge_enabled', v)}
+              />
+            </div>
+            {settings.volume_surge_enabled && (
+              <Slider
+                value={settings.volume_surge_multiplier}
+                min={1.5}
+                max={10}
+                step={0.5}
+                onChange={(v) => update('volume_surge_multiplier', v)}
+                label={`倍率: ${settings.volume_surge_multiplier}x`}
+              />
+            )}
+          </div>
+
+          {/* 日次レポート */}
+          <div className="border-t pt-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">日次レポート</p>
+                <p className="text-sm text-gray-500">毎日の市場サマリーを通知</p>
+              </div>
+              <Toggle
+                checked={settings.daily_report_enabled}
+                onChange={(v) => update('daily_report_enabled', v)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 保存ボタン */}
+        <div className="mt-6 flex items-center gap-4">
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSaving ? '保存中...' : '設定を保存'}
+          </button>
+          {saveMessage && (
+            <span className={`text-sm ${saveMessage.includes('失敗') ? 'text-red-600' : 'text-green-600'}`}>
+              {saveMessage}
+            </span>
+          )}
         </div>
       </div>
     </div>
