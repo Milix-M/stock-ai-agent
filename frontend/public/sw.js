@@ -4,8 +4,7 @@ const CACHE_NAME = 'stock-ai-agent-v1'
 const urlsToCache = [
   '/',
   '/index.html',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/vite.svg'
 ]
 
 // インストール時：キャッシュ作成
@@ -15,6 +14,20 @@ self.addEventListener('install', (event) => {
       .then((cache) => cache.addAll(urlsToCache))
   )
   self.skipWaiting()
+})
+
+// アクティベート時：古いキャッシュ削除
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) =>
+      Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      )
+    )
+  )
+  self.clients.claim()
 })
 
 // フェッチ時：キャッシュ優先
@@ -32,21 +45,19 @@ self.addEventListener('fetch', (event) => {
 
 // プッシュ通知受信
 self.addEventListener('push', (event) => {
-  if (!event.data) return
-
-  const data = event.data.json()
-  
+  const data = event.data ? event.data.json() : {}
+  const title = data.title || 'Stock AI Agent'
   const options = {
-    body: data.body,
-    icon: data.icon || '/icon-192.png',
-    badge: data.badge || '/badge-72x72.png',
+    body: data.body || '新しい通知があります',
+    icon: data.icon || '/vite.svg',
+    badge: data.badge || '/vite.svg',
     data: data.data || {},
+    vibrate: [100, 50, 100],
     requireInteraction: data.requireInteraction || false,
-    actions: data.actions || []
+    actions: data.actions || [],
   }
-
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(title, options)
   )
 })
 
@@ -54,32 +65,45 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const notificationData = event.notification.data
+  const data = event.notification.data || {}
   const action = event.action
+  let url = '/dashboard'
 
-  if (action === 'view' || !action) {
-    // アプリを開く
-    const url = notificationData?.stock_code 
-      ? `/stocks/${notificationData.stock_code}`
-      : '/dashboard'
-
-    event.waitUntil(
-      clients.openWindow(url)
-    )
-  } else if (action === 'add_watchlist') {
-    // ウォッチリストに追加（バックグラウンド処理）
+  // アクションボタン対応
+  if (action === 'add_watchlist') {
     event.waitUntil(
       fetch('/api/v1/watchlist/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          stock_id: notificationData?.stock_code
-        })
-      }).then(() => {
-        clients.openWindow('/dashboard')
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stock_code: data.stock_code }),
+      }).then(() => clients.openWindow('/watchlist'))
     )
+    return
   }
+
+  // 通知タイプに応じて遷移先を変える
+  if (data.type === 'recommendation') {
+    url = '/dashboard'
+  } else if (data.type === 'price_alert') {
+    url = '/watchlist'
+  } else if (data.type === 'volume_surge') {
+    url = '/stocks'
+  } else if (data.stock_code) {
+    url = `/stocks/${data.stock_code}`
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((windowClients) => {
+        // 既存のウィンドウがあればフォーカス
+        for (const client of windowClients) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            client.navigate(url)
+            return client.focus()
+          }
+        }
+        // なければ新規ウィンドウ
+        return clients.openWindow(url)
+      })
+  )
 })

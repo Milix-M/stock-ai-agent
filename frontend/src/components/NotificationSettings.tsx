@@ -189,6 +189,11 @@ export default function NotificationSettings() {
                 </button>
               )}
             </div>
+            {!import.meta.env.VITE_VAPID_PUBLIC_KEY && (
+              <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded mt-2">
+                VAPID公開鍵が設定されていません。<code className="text-xs">frontend/.env</code> に <code className="text-xs">VITE_VAPID_PUBLIC_KEY</code> を設定してください。
+              </p>
+            )}
             {permission === 'denied' && (
               <p className="text-sm text-red-600">ブラウザの設定から通知を許可してください</p>
             )}
