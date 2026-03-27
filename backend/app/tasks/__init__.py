@@ -8,7 +8,7 @@ from app.agents.analysis_agent import analysis_agent
 settings = get_settings()
 
 celery_app = Celery(
-    "stock_ai",
+    "picks",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
     include=[

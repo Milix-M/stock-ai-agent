@@ -1,4 +1,4 @@
-# Stock AI Agent
+# PICKS
 
 個人投資家向けのAI株価監視・通知アプリケーション。
 
@@ -102,7 +102,7 @@ make lint
 ## プロジェクト構造
 
 ```
-stock-ai-agent/
+picks/
 ├── docker-compose.yml      # 開発環境構成
 ├── Makefile                # 常用コマンド
 ├── docs/

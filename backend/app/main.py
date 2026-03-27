@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Stock AI Agent API",
+    title="PICKS API",
     description="株AIエージェントバックエンドAPI",
     version="0.1.0",
     lifespan=lifespan,

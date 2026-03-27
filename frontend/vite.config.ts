@@ -13,7 +13,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       },
       manifest: {
-        name: 'Stock AI Agent',
+        name: 'PICKS',
         short_name: 'StockAI',
         description: 'AI株価監視・通知アプリ',
         theme_color: '#ffffff',

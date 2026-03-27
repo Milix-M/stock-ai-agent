@@ -1,4 +1,4 @@
-# 詳細設計書（DD）- Stock AI Agent
+# 詳細設計書（DD）- PICKS
 
 ## 1. システム構成
 

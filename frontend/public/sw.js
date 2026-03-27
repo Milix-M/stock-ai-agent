@@ -1,6 +1,6 @@
 // サービスワーカー（プッシュ通知用）
 
-const CACHE_NAME = 'stock-ai-agent-v1'
+const CACHE_NAME = 'picks-v1'
 const urlsToCache = [
   '/',
   '/index.html',
@@ -46,7 +46,7 @@ self.addEventListener('fetch', (event) => {
 // プッシュ通知受信
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {}
-  const title = data.title || 'Stock AI Agent'
+  const title = data.title || 'PICKS'
   const options = {
     body: data.body || '新しい通知があります',
     icon: data.icon || '/vite.svg',

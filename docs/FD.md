@@ -1,4 +1,4 @@
-# 機能設計書（FD）- Stock AI Agent
+# 機能設計書（FD）- PICKS
 
 ## 1. 画面機能一覧
 

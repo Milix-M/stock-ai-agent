@@ -715,7 +715,7 @@
 ### 12.1 リポジトリ全体
 
 ```
-stock-ai-agent/
+picks/
 ├── docker-compose.yml          # 開発環境構成
 ├── Makefile                    # 常用コマンド短縮
 ├── README.md
@@ -1104,7 +1104,7 @@ from celery import Celery
 from app.config import settings
 
 celery_app = Celery(
-    "stock_ai",
+    "picks",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
     include=[

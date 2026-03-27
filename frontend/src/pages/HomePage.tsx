@@ -16,7 +16,7 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Stock AI Agent
+          PICKS
         </h1>
         <p className="text-lg text-gray-600 mb-8">
           AIが株価を監視し、あなたの投資パターンに合った銘柄を提案

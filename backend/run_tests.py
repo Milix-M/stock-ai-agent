@@ -18,7 +18,7 @@ def run_tests():
     ]
     
     print("=" * 60)
-    print("Stock AI Agent - テスト実行")
+    print("PICKS - テスト実行")
     print("=" * 60)
     
     failed = []

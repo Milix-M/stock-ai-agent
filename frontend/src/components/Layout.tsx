@@ -50,7 +50,7 @@ export default function Layout() {
         <div className="flex items-center h-16 px-4 border-b overflow-hidden">
           <span className="text-xl flex-shrink-0">📈</span>
           <span className="ml-2 font-bold text-lg whitespace-nowrap overflow-hidden">
-            Stock AI
+            PICKS
           </span>
         </div>
 
