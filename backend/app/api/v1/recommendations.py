@@ -52,6 +52,7 @@ async def get_recommendations(
     
     if result.get("status") == "success":
         recommendations = result.get("recommendations", [])
+        print(f"Recommendations for {current_user.id}: {len(recommendations)} results from {result.get('total_patterns', 0)} patterns")
         
         return {
             "recommendations": recommendations,

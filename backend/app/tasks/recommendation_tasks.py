@@ -231,9 +231,16 @@ async def generate_all_recommendations(user_id: str):
         
         all_results = []
         for pattern in patterns:
-            result = await generate_recommendations_for_pattern(user_id, str(pattern.id))
-            if result.get("status") == "success":
-                all_results.extend(result.get("recommendations", []))
+            try:
+                result = await generate_recommendations_for_pattern(user_id, str(pattern.id))
+                if result.get("status") == "success":
+                    all_results.extend(result.get("recommendations", []))
+                else:
+                    print(f"Pattern {pattern.id} ({pattern.name}) failed: {result.get('error', 'unknown')}")
+            except Exception as e:
+                print(f"Error in pattern {pattern.id} ({pattern.name}): {e}")
+                import traceback
+                traceback.print_exc()
         
         # 重複排除（同じ銘柄が複数パターンにマッチする場合）
         seen = set()
