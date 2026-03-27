@@ -88,6 +88,9 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                 if not price_data:
                     continue
                 
+                # 銘柄情報を先に取得
+                stock_info = await stock_search_service.get_stock_info(code)
+                
                 # パターンフィルタで評価（null値は無視）
                 filters = pattern.parsed_filters.get("filters", {})
                 score = 0
@@ -148,15 +151,12 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                 
                 # 影響セクターマッチング
                 if all_sectors:
-                    stock_info = await stock_search_service.get_stock_info(code)
                     if stock_info and stock_info.sector and stock_info.sector in all_sectors:
                         score += 1
                         matched.append(f"セクター: {stock_info.sector}")
                 
                 # スコアが1以上あればレコメンド（条件が少ないパターンにも対応）
                 if score >= 1:
-                    if not stock_info:
-                        stock_info = await stock_search_service.get_stock_info(code)
                     trend_info = ""
                     if price_trend:
                         if not trend_data:
