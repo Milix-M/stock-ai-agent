@@ -83,6 +83,31 @@ export default function RecommendationList() {
                 </div>
               )}
 
+              {rec.pattern_input && (
+                <div className="mt-2 text-xs text-gray-400 italic">
+                  検索条件: 「{rec.pattern_input}」
+                </div>
+              )}
+
+              {rec.event_keywords && rec.event_keywords.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {rec.event_keywords.map((kw, kidx) => (
+                    <span
+                      key={kidx}
+                      className="text-xs px-2 py-1 bg-orange-50 text-orange-600 rounded"
+                    >
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {rec.trend_info && (
+                <div className="mt-2 text-xs text-blue-600">
+                  📈 {rec.trend_info}
+                </div>
+              )}
+
               <div className="mt-3 flex gap-2">
                 <button className="text-sm text-blue-600 hover:text-blue-800">
                   詳細を見る →

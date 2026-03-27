@@ -176,12 +176,15 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                         "stock_code": code,
                         "stock_name": stock_info.name if stock_info else code,
                         "pattern_name": pattern.name,
+                        "pattern_input": pattern.raw_input,
                         "match_score": min(score / max(len(matched), 1), 1.0),
                         "matched_criteria": matched,
                         "current_price": price_data.get("current_price"),
                         "change_percent": price_data.get("change_percent"),
                         "reason": f"{stock_info.name if stock_info else code}は{pattern.name}に適合（{', '.join(matched)}）",
                         "trend_info": trend_info if price_trend else None,
+                        "event_keywords": event_keywords if event_keywords else None,
+                        "affected_sectors": affected_sectors if affected_sectors else None,
                     })
                     
             except Exception as e:
