@@ -132,14 +132,10 @@ class StockSearchService:
             change = latest["Close"] - previous["Close"]
             change_percent = (change / previous["Close"]) * 100 if previous["Close"] else 0
 
-            # dividendYieldが小数（0.045=4.5%）かパーセンテージ（4.5）かを判定
+            # dividendYieldはパーセンテージ形式で返される（例：4.5 = 4.5%）
             dividend_yield = info.get("dividendYield")
             if dividend_yield:
-                # 2より大きい場合は既にパーセンテージ形式と見なす
-                if dividend_yield > 2:
-                    dividend_yield = dividend_yield  # そのまま使用
-                else:
-                    dividend_yield = dividend_yield * 100  # 小数からパーセンテージに変換
+                dividend_yield = dividend_yield  # そのまま使用
             else:
                 dividend_yield = None
 
