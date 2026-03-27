@@ -1,8 +1,9 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.api.v1.users import get_current_user
 from app.services.pattern_service import PatternService
@@ -24,18 +25,20 @@ async def list_patterns(
 
 
 @router.post("/parse", response_model=PatternParseResponse)
+@limiter.limit("10/minute")
 async def parse_pattern(
-    request: PatternParseRequest,
+    request: Request,
+    body: PatternParseRequest,
     current_user = Depends(get_current_user)
 ):
     """自然言語をパターンに解析"""
     llm_service = LLMService()
     
     try:
-        parsed = await llm_service.parse_pattern(request.input)
+        parsed = await llm_service.parse_pattern(body.input)
         
         return PatternParseResponse(
-            raw_input=request.input,
+            raw_input=body.input,
             parsed=parsed
         )
     except Exception as e:
@@ -46,8 +49,10 @@ async def parse_pattern(
 
 
 @router.post("/", response_model=PatternResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 async def create_pattern(
-    request: PatternCreate,
+    request: Request,
+    body: PatternCreate,
     current_user = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -57,10 +62,10 @@ async def create_pattern(
     try:
         pattern = await service.create_pattern(
             user_id=str(current_user.id),
-            name=request.name,
-            description=request.description,
-            raw_input=request.raw_input,
-            parsed_filters=request.parsed_filters
+            name=body.name,
+            description=body.description,
+            raw_input=body.raw_input,
+            parsed_filters=body.parsed_filters
         )
         
         # パターン作成後、即座にレコメンド生成（バックグラウンドで非同期実行）

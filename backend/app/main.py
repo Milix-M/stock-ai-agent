@@ -4,6 +4,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import auth, users, stocks, patterns, watchlist, notifications, recommendations, admin, market
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+from app.middleware.security import SecurityHeadersMiddleware
+from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.config import get_settings
 from app.db.session import engine
 from app.models.base import Base
@@ -33,6 +38,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Security Headers
+app.add_middleware(SecurityHeadersMiddleware)
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -47,6 +55,12 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "version": "0.1.0"}
+
+
+# APIルーター
+# Rate Limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 
 # APIルーター

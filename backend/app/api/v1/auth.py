@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.core.security import (
     create_access_token,
@@ -18,13 +19,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
+@limiter.limit("3/minute")
 async def register(
-    request: RegisterRequest,
+    request: Request,
+    body: RegisterRequest,
     db: AsyncSession = Depends(get_db)
 ):
     """ユーザー登録"""
     # メールアドレス重複チェック
-    existing_user = await get_user_by_email(db, request.email)
+    existing_user = await get_user_by_email(db, body.email)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -34,9 +37,9 @@ async def register(
     # ユーザー作成
     user = await create_user(
         db=db,
-        email=request.email,
-        password=request.password,
-        display_name=request.display_name
+        email=body.email,
+        password=body.password,
+        display_name=body.display_name
     )
     
     # トークン生成
@@ -51,7 +54,9 @@ async def register(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db)
 ):

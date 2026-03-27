@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.api.v1.users import get_current_user
 from app.services.notification_service import NotificationService, NotificationPayload
@@ -178,7 +179,9 @@ async def update_notification_settings(
 
 # テスト用エンドポイント（開発時のみ）
 @router.post("/test")
+@limiter.limit("3/minute")
 async def send_test_notification(
+    request: Request,
     current_user = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):

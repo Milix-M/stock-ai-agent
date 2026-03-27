@@ -1,7 +1,8 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.api.v1.users import get_current_user
 from app.services.stock_search_service import StockSearchService
@@ -12,7 +13,9 @@ stock_search_service = StockSearchService()
 
 
 @router.get("/", response_model=List[StockSearchResponse])
+@limiter.limit("20/minute")
 async def search_stocks(
+    request: Request,
     q: str = Query(..., description="検索キーワード（銘柄コードまたは銘柄名）"),
     limit: int = Query(20, ge=1, le=50),
     current_user = Depends(get_current_user),

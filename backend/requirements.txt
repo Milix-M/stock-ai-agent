@@ -37,6 +37,9 @@ openai>=1.59.0
 # Stock Data
 yfinance>=0.2.59
 
+# Rate Limiting
+slowapi>=0.1.9
+
 # Utilities
 python-dotenv==1.0.1
 structlog==24.4.0
