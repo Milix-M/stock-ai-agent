@@ -201,7 +201,7 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
               </button>
             </div>
           </>
-        ) : (
+        ) : parseResult ? (
           <>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -231,21 +231,21 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
             <div className="bg-gray-50 rounded-lg p-4 mb-4">
               <h4 className="font-medium mb-2">解析結果</h4>
               
-              {parseResult?.parsed?.strategy && (
+              {parseResult.parsed?.strategy && (
                 <p className="text-sm text-gray-600 mb-2">
                   戦略: {parseResult.parsed.strategy}
                 </p>
               )}
               
-              {renderFilters().length > 0 && (
+              {renderFilters() && renderFilters()!.length > 0 && (
                 <div className="space-y-1">
-                  {renderFilters().map((filter, idx) => (
+                  {renderFilters()!.map((filter, idx) => (
                     <p key={idx} className="text-sm text-gray-600">• {filter}</p>
                   ))}
                 </div>
               )}
               
-              {parseResult?.parsed?.keywords && (
+              {parseResult.parsed?.keywords && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {parseResult.parsed.keywords?.map((keyword, idx) => (
                     <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
@@ -272,7 +272,7 @@ export default function PatternCreateModal({ isOpen, onClose, onSuccess }: Patte
               </button>
             </div>
           </>
-        )}
+        ) : null}
       </div>
     </div>
   )
