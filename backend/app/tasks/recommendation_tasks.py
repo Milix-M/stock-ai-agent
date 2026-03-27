@@ -85,33 +85,46 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                 if not price_data:
                     continue
                 
-                # パターンフィルタで評価
+                # パターンフィルタで評価（null値は無視）
                 filters = pattern.parsed_filters.get("filters", {})
                 score = 0
                 matched = []
                 
                 # PER評価
-                if "per_max" in filters and price_data.get("per"):
-                    if price_data["per"] <= filters["per_max"]:
+                per_max = filters.get("per_max")
+                per_min = filters.get("per_min")
+                if (per_max is not None or per_min is not None) and price_data.get("per") is not None:
+                    per = price_data["per"]
+                    if (per_min is None or per >= per_min) and (per_max is None or per <= per_max):
                         score += 1
-                        matched.append(f"PER: {price_data['per']:.1f}倍")
+                        matched.append(f"PER: {per:.1f}倍")
                 
                 # PBR評価
-                if "pbr_max" in filters and price_data.get("pbr"):
-                    if price_data["pbr"] <= filters["pbr_max"]:
+                pbr_max = filters.get("pbr_max")
+                pbr_min = filters.get("pbr_min")
+                if (pbr_max is not None or pbr_min is not None) and price_data.get("pbr") is not None:
+                    pbr = price_data["pbr"]
+                    if (pbr_min is None or pbr >= pbr_min) and (pbr_max is None or pbr <= pbr_max):
                         score += 1
-                        matched.append(f"PBR: {price_data['pbr']:.1f}倍")
+                        matched.append(f"PBR: {pbr:.1f}倍")
                 
-                # 配当利回り評価（yfinanceは%単位で返すことがあるため、適切に処理）
-                if "dividend_yield_min" in filters and price_data.get("dividend_yield"):
-                    # yfinanceは配当利回りを%単位（例：2.5）または配当額で返す場合がある
+                # 配当利回り評価
+                div_min = filters.get("dividend_yield_min")
+                div_max = filters.get("dividend_yield_max")
+                if (div_min is not None or div_max is not None) and price_data.get("dividend_yield") is not None:
                     dividend_yield = price_data["dividend_yield"]
-                    # 100以上の値は配当額とみなして利回りに変換（概算）
-                    if dividend_yield > 100:
-                        dividend_yield = (dividend_yield / price_data.get("current_price", 1)) * 100
-                    if dividend_yield >= filters["dividend_yield_min"]:
+                    if (div_min is None or dividend_yield >= div_min) and (div_max is None or dividend_yield <= div_max):
                         score += 1
                         matched.append(f"配当: {dividend_yield:.1f}%")
+                
+                # 時価総額評価
+                cap_min = filters.get("market_cap_min")
+                cap_max = filters.get("market_cap_max")
+                if (cap_min is not None or cap_max is not None) and price_data.get("market_cap") is not None:
+                    cap = price_data["market_cap"]
+                    if (cap_min is None or cap >= cap_min) and (cap_max is None or cap <= cap_max):
+                        score += 1
+                        matched.append(f"時価総額: {cap:,}円")
                 
                 # スコアが1以上あればレコメンド（条件が少ないパターンにも対応）
                 if score >= 1:
@@ -120,7 +133,7 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                         "stock_code": code,
                         "stock_name": stock_info.name if stock_info else code,
                         "pattern_name": pattern.name,
-                        "match_score": min(score / 3, 1.0),  # 最大3項目で正規化
+                        "match_score": min(score / max(len(matched), 1), 1.0),
                         "matched_criteria": matched,
                         "current_price": price_data.get("current_price"),
                         "change_percent": price_data.get("change_percent"),
