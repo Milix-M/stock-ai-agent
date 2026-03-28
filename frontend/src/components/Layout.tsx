@@ -59,7 +59,7 @@ export default function Layout() {
         />
       )}
 
-      {/* サイドバー — ネイビーベースでヘッダーと統一 */}
+      {/* サイドバー */}
       <aside
         className={`fixed top-0 left-0 h-full z-40
           bg-[#1a1f36] flex flex-col transition-transform duration-300 w-56
@@ -74,6 +74,15 @@ export default function Layout() {
             </svg>
             <span className="font-bold text-xl tracking-wide text-white">PICKS</span>
           </div>
+          {/* モバイル閉じるボタン */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="ml-auto lg:hidden text-white/60 hover:text-white"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* ナビ */}
@@ -84,7 +93,7 @@ export default function Layout() {
               to={item.to}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative
                 ${isActive
                   ? 'bg-white/15 text-white'
                   : 'text-slate-400 hover:bg-white/8 hover:text-white'}`
@@ -92,12 +101,24 @@ export default function Layout() {
             >
               <NavIcon name={item.icon} className="w-5 h-5" />
               <span>{item.label}</span>
+              {/* 通知バッジ */}
+              {item.icon === 'bell' && unreadCount > 0 && (
+                <span className="absolute right-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        {/* サイドバー下部 */}
+        {/* ユーザー情報 + ログアウト */}
         <div className="p-3 border-t border-white/10">
+          <div className="px-3 py-2 mb-1">
+            <p className="text-xs text-slate-500">ログイン中</p>
+            <p className="text-sm text-white truncate">
+              {user?.display_name || user?.email}
+            </p>
+          </div>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
@@ -112,48 +133,17 @@ export default function Layout() {
 
       {/* メインエリア */}
       <div className="lg:ml-56">
-        {/* ヘッダー */}
-        <header className="bg-[#1a1f36] sticky top-0 z-20 shadow-lg border-b border-white/5">
-          <div className="flex items-center justify-between px-4 lg:px-6 py-3">
-            {/* ハンバーガー（モバイルのみ） */}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden text-white/80 hover:text-white"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {sidebarOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-
-            {!sidebarOpen && (
-              <div className="hidden lg:block" />
-            )}
-
-            <div className="flex items-center gap-4">
-              {/* 通知ベル */}
-              <button
-                onClick={() => navigate('/notifications')}
-                className="relative text-white/80 hover:text-white transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                </svg>
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-              <span className="text-sm text-white/70 hidden sm:block">
-                {user?.display_name || user?.email}
-              </span>
-            </div>
-          </div>
-        </header>
+        {/* モバイルヘッダー — ハンバーガーのみ */}
+        <div className="lg:hidden sticky top-0 z-20 bg-[#1a1f36] px-4 py-3">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-white/80 hover:text-white"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
 
         {/* コンテンツ */}
         <main className="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
