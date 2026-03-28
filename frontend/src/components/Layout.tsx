@@ -59,25 +59,25 @@ export default function Layout() {
         />
       )}
 
-      {/* サイドバー */}
+      {/* サイドバー — ネイビーベースでヘッダーと統一 */}
       <aside
-        className={`fixed top-0 left-0 h-full z-40 bg-white border-r border-slate-200
-          flex flex-col transition-transform duration-300 w-56
+        className={`fixed top-0 left-0 h-full z-40
+          bg-[#1a1f36] flex flex-col transition-transform duration-300 w-56
           lg:translate-x-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* ロゴ */}
-        <div className="flex items-center h-16 px-6 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <svg className="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="flex items-center h-16 px-6 border-b border-white/10">
+          <div className="flex items-center gap-2.5">
+            <svg className="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
             </svg>
-            <span className="font-bold text-xl tracking-wide text-navy-700">PICKS</span>
+            <span className="font-bold text-xl tracking-wide text-white">PICKS</span>
           </div>
         </div>
 
         {/* ナビ */}
-        <nav className="mt-6 space-y-1 px-3 flex-1">
+        <nav className="mt-4 space-y-1 px-3 flex-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -86,8 +86,8 @@ export default function Layout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
                 ${isActive
-                  ? 'bg-navy-700 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-navy-700'}`
+                  ? 'bg-white/15 text-white'
+                  : 'text-slate-400 hover:bg-white/8 hover:text-white'}`
               }
             >
               <NavIcon name={item.icon} className="w-5 h-5" />
@@ -97,10 +97,10 @@ export default function Layout() {
         </nav>
 
         {/* サイドバー下部 */}
-        <div className="p-4 border-t border-slate-200">
+        <div className="p-3 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -113,7 +113,7 @@ export default function Layout() {
       {/* メインエリア */}
       <div className="lg:ml-56">
         {/* ヘッダー */}
-        <header className="bg-gradient-to-r from-navy-700 via-navy-700 to-navy-500 sticky top-0 z-20 shadow-lg">
+        <header className="bg-[#1a1f36] sticky top-0 z-20 shadow-lg border-b border-white/5">
           <div className="flex items-center justify-between px-4 lg:px-6 py-3">
             {/* ハンバーガー（モバイルのみ） */}
             <button
@@ -148,7 +148,7 @@ export default function Layout() {
                   </span>
                 )}
               </button>
-              <span className="text-sm text-white/80 hidden sm:block">
+              <span className="text-sm text-white/70 hidden sm:block">
                 {user?.display_name || user?.email}
               </span>
             </div>
