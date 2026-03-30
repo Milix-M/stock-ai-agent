@@ -26,12 +26,138 @@ AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 redis_client = redis.from_url(settings.REDIS_URL)
 
 
-async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
+async def _evaluate_single_stock(
+    code: str,
+    stock_search_service,
+    filters: dict,
+    parsed: dict,
+    price_trend: str | None,
+    trend_period: str,
+    all_sectors: list,
+    event_keywords: list,
+    affected_sectors: list,
+    is_event_driven: bool,
+    min_score: int,
+    pattern,
+) -> dict | None:
+    """個別銘柄の評価（並列実行用）"""
+    try:
+        price_data = await stock_search_service.get_price_data(code)
+        if not price_data:
+            return None
+
+        stock_info = await stock_search_service.get_stock_info(code)
+
+        score = 0
+        matched = []
+
+        # PER
+        per_max = filters.get("per_max")
+        per_min = filters.get("per_min")
+        if (per_max is not None or per_min is not None) and price_data.get("per") is not None:
+            per = price_data["per"]
+            if (per_min is None or per >= per_min) and (per_max is None or per <= per_max):
+                score += 1
+                matched.append(f"PER: {per:.1f}倍")
+
+        # PBR
+        pbr_max = filters.get("pbr_max")
+        pbr_min = filters.get("pbr_min")
+        if (pbr_max is not None or pbr_min is not None) and price_data.get("pbr") is not None:
+            pbr = price_data["pbr"]
+            if (pbr_min is None or pbr >= pbr_min) and (pbr_max is None or pbr <= pbr_max):
+                score += 1
+                matched.append(f"PBR: {pbr:.1f}倍")
+
+        # 配当利回り
+        div_min = filters.get("dividend_yield_min")
+        div_max = filters.get("dividend_yield_max")
+        if (div_min is not None or div_max is not None) and price_data.get("dividend_yield") is not None:
+            dividend_yield = price_data["dividend_yield"]
+            if (div_min is None or dividend_yield >= div_min) and (div_max is None or dividend_yield <= div_max):
+                score += 1
+                matched.append(f"配当: {dividend_yield:.1f}%")
+
+        # 時価総額
+        cap_min = filters.get("market_cap_min")
+        cap_max = filters.get("market_cap_max")
+        if (cap_min is not None or cap_max is not None) and price_data.get("market_cap") is not None:
+            cap = price_data["market_cap"]
+            if (cap_min is None or cap >= cap_min) and (cap_max is None or cap <= cap_max):
+                score += 1
+                matched.append(f"時価総額: {cap:,}円")
+
+        # 価格トレンド
+        trend_data = None
+        if price_trend:
+            trend_data = await stock_search_service.get_trend_data(code, trend_period)
+            if trend_data:
+                tp = trend_data["trend_percent"]
+                if price_trend == "declining" and tp < 0:
+                    score += 1
+                    matched.append(f"下落傾向: {tp:+.1f}%（{trend_period}）")
+                elif price_trend == "rising" and tp > 0:
+                    score += 1
+                    matched.append(f"上昇傾向: {tp:+.1f}%（{trend_period}）")
+                elif price_trend == "volatile" and trend_data.get("volatility", 0) > 10:
+                    score += 1
+                    matched.append(f"ボラティリティ高: {trend_data['volatility']:.1f}%（{trend_period}）")
+
+        # セクターマッチング
+        if all_sectors and stock_info and stock_info.sector:
+            if stock_info.sector in all_sectors:
+                score -= 1
+                matched.append(f"セクター: {stock_info.sector}（影響あり）")
+            else:
+                score += 1
+                matched.append(f"セクター: {stock_info.sector}（影響なし）")
+
+        if score >= min_score:
+            trend_info = ""
+            if price_trend and trend_data:
+                trend_info = f"（{trend_period}間: {trend_data['trend_percent']:+.1f}%）"
+
+            return {
+                "stock_code": code,
+                "stock_name": stock_info.name if stock_info else code,
+                "pattern_name": pattern.name,
+                "pattern_input": pattern.raw_input,
+                "match_score": min(score / max(len(matched), 1), 1.0),
+                "matched_criteria": matched,
+                "current_price": price_data.get("current_price"),
+                "change_percent": price_data.get("change_percent"),
+                "reason": f"{stock_info.name if stock_info else code}は{pattern.name}に適合（{', '.join(matched)}）",
+                "trend_info": trend_info if price_trend else None,
+                "event_keywords": event_keywords if event_keywords else None,
+                "affected_sectors": affected_sectors if affected_sectors else None,
+            }
+
+        return None
+
+    except Exception as e:
+        print(f"Error evaluating {code}: {e}")
+        return None
+
+
+async def generate_recommendations_for_pattern(user_id: str, pattern_id: str, force_refresh: bool = False):
     """
     特定のパターンでレコメンドを生成
     パターン作成時に即座に実行
     検索順位: ウォッチリスト > セクター一致 > 人気銘柄
     """
+    # Redisキャッシュチェック
+    if not force_refresh:
+        cache_key = f"recommendations:{user_id}:{pattern_id}"
+        try:
+            cached = await redis_client.get(cache_key)
+            if cached:
+                import json
+                data = json.loads(cached)
+                data["cached"] = True
+                return data
+        except Exception as e:
+            print(f"Cache read error: {e}")
+
     async with AsyncSessionLocal() as db:
         # サービス初期化
         pattern_service = PatternService(db)
@@ -81,115 +207,43 @@ async def generate_recommendations_for_pattern(user_id: str, pattern_id: str):
                 seen.add(code)
                 unique_codes.append(code)
         
+        # パターン情報を事前取得
+        parsed = pattern.parsed_filters
+        filters = parsed.get("filters", {})
+        price_trend = parsed.get("price_trend")
+        trend_period = parsed.get("trend_period") or "3mo"
+        all_sectors_for_match = all_sectors
+        event_keywords = event_keywords
+        affected_sectors = affected_sectors
+        is_event_driven = bool(all_sectors_for_match or event_keywords)
+        min_score = 0 if is_event_driven else 1
+
+        # 並列評価
+        tasks = [
+            _evaluate_single_stock(
+                code=code,
+                stock_search_service=stock_search_service,
+                filters=filters,
+                parsed=parsed,
+                price_trend=price_trend,
+                trend_period=trend_period,
+                all_sectors=all_sectors_for_match,
+                event_keywords=event_keywords,
+                affected_sectors=affected_sectors,
+                is_event_driven=is_event_driven,
+                min_score=min_score,
+                pattern=pattern,
+            )
+            for code in unique_codes
+        ]
+        task_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
         results = []
-        for code in unique_codes:
-            try:
-                # 株価データ取得
-                price_data = await stock_search_service.get_price_data(code)
-                if not price_data:
-                    continue
-                
-                # 銘柄情報を先に取得
-                stock_info = await stock_search_service.get_stock_info(code)
-                
-                # パターンフィルタで評価（null値は無視）
-                filters = pattern.parsed_filters.get("filters", {})
-                score = 0
-                matched = []
-                
-                # PER評価
-                per_max = filters.get("per_max")
-                per_min = filters.get("per_min")
-                if (per_max is not None or per_min is not None) and price_data.get("per") is not None:
-                    per = price_data["per"]
-                    if (per_min is None or per >= per_min) and (per_max is None or per <= per_max):
-                        score += 1
-                        matched.append(f"PER: {per:.1f}倍")
-                
-                # PBR評価
-                pbr_max = filters.get("pbr_max")
-                pbr_min = filters.get("pbr_min")
-                if (pbr_max is not None or pbr_min is not None) and price_data.get("pbr") is not None:
-                    pbr = price_data["pbr"]
-                    if (pbr_min is None or pbr >= pbr_min) and (pbr_max is None or pbr <= pbr_max):
-                        score += 1
-                        matched.append(f"PBR: {pbr:.1f}倍")
-                
-                # 配当利回り評価
-                div_min = filters.get("dividend_yield_min")
-                div_max = filters.get("dividend_yield_max")
-                if (div_min is not None or div_max is not None) and price_data.get("dividend_yield") is not None:
-                    dividend_yield = price_data["dividend_yield"]
-                    if (div_min is None or dividend_yield >= div_min) and (div_max is None or dividend_yield <= div_max):
-                        score += 1
-                        matched.append(f"配当: {dividend_yield:.1f}%")
-                
-                # 時価総額評価
-                cap_min = filters.get("market_cap_min")
-                cap_max = filters.get("market_cap_max")
-                if (cap_min is not None or cap_max is not None) and price_data.get("market_cap") is not None:
-                    cap = price_data["market_cap"]
-                    if (cap_min is None or cap >= cap_min) and (cap_max is None or cap <= cap_max):
-                        score += 1
-                        matched.append(f"時価総額: {cap:,}円")
-                
-                # 価格トレンド評価
-                price_trend = parsed.get("price_trend")
-                trend_period = parsed.get("trend_period") or "3mo"
-                if price_trend:
-                    trend_data = await stock_search_service.get_trend_data(code, trend_period)
-                    if trend_data:
-                        tp = trend_data["trend_percent"]
-                        if price_trend == "declining" and tp < 0:
-                            score += 1
-                            matched.append(f"下落傾向: {tp:+.1f}%（{trend_period}）")
-                        elif price_trend == "rising" and tp > 0:
-                            score += 1
-                            matched.append(f"上昇傾向: {tp:+.1f}%（{trend_period}）")
-                        elif price_trend == "volatile" and trend_data.get("volatility", 0) > 10:
-                            score += 1
-                            matched.append(f"ボラティリティ高: {trend_data['volatility']:.1f}%（{trend_period}）")
-                
-                # 影響セクターマッチング（イベント駆動型）
-                # 「影響が少ない」を判定: 影響セクター外なら加点、内なら減点
-                is_event_driven = bool(all_sectors or event_keywords)
-                if all_sectors and stock_info and stock_info.sector:
-                    if stock_info.sector in all_sectors:
-                        score -= 1  # 影響を受けるセクターは減点
-                        matched.append(f"セクター: {stock_info.sector}（影響あり）")
-                    else:
-                        score += 1  # 影響セクター外は加点
-                        matched.append(f"セクター: {stock_info.sector}（影響なし）")
-                
-                # イベント駆動型で条件がない場合、全銘柄を候補に（score >= 0）
-                # 通常型は score >= 1 で採用
-                min_score = 0 if is_event_driven else 1
-                
-                if score >= min_score:
-                    trend_info = ""
-                    if price_trend:
-                        if not trend_data:
-                            trend_data = await stock_search_service.get_trend_data(code, trend_period)
-                        if trend_data:
-                            trend_info = f"（{trend_period}間: {trend_data['trend_percent']:+.1f}%）"
-                    results.append({
-                        "stock_code": code,
-                        "stock_name": stock_info.name if stock_info else code,
-                        "pattern_name": pattern.name,
-                        "pattern_input": pattern.raw_input,
-                        "match_score": min(score / max(len(matched), 1), 1.0),
-                        "matched_criteria": matched,
-                        "current_price": price_data.get("current_price"),
-                        "change_percent": price_data.get("change_percent"),
-                        "reason": f"{stock_info.name if stock_info else code}は{pattern.name}に適合（{', '.join(matched)}）",
-                        "trend_info": trend_info if price_trend else None,
-                        "event_keywords": event_keywords if event_keywords else None,
-                        "affected_sectors": affected_sectors if affected_sectors else None,
-                    })
-                    
-            except Exception as e:
-                print(f"Error evaluating {code}: {e}")
+        for r in task_results:
+            if isinstance(r, Exception):
                 continue
+            if r is not None:
+                results.append(r)
         
         # スコア順にソート
         results.sort(key=lambda x: x["match_score"], reverse=True)
