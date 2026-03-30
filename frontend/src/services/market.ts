@@ -15,7 +15,7 @@ export interface MarketIndex {
 export interface MarketOverview {
   indices: {
     nikkei_225: MarketIndex | null
-    dow_jones: MarketIndex | null
+    nikkei_futures: MarketIndex | null
   }
   updated_at?: string
   data_source?: string

@@ -5,10 +5,10 @@ import { useColorThemeStore, RISE_PRESETS, FALL_PRESETS } from '../stores/colorT
 export default function MarketOverview() {
   const [indices, setIndices] = useState<{
     nikkei_225: MarketIndex | null
-    dow_jones: MarketIndex | null
+    nikkei_futures: MarketIndex | null
   }>({
     nikkei_225: null,
-    dow_jones: null,
+    nikkei_futures: null,
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isFallback, setIsFallback] = useState(false)
@@ -104,7 +104,7 @@ export default function MarketOverview() {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {renderIndex(indices.nikkei_225, '日経平均')}
-        {renderIndex(indices.dow_jones, 'NYダウ')}
+        {renderIndex(indices.nikkei_futures, '日経平均先物ミニ')}
       </div>
       
       <p className="text-xs text-slate-400 mt-3">

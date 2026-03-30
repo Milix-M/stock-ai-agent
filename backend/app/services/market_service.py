@@ -105,9 +105,9 @@ class MarketService:
             return result
         return None
     
-    async def get_dow_jones(self) -> Optional[Dict[str, Any]]:
-        """NYダウを取得（キャッシュ付き）"""
-        cache_key = "market:dow_jones"
+    async def get_nikkei_futures(self) -> Optional[Dict[str, Any]]:
+        """日経平均先物ミニを取得（キャッシュ付き）"""
+        cache_key = "market:nikkei_futures"
         
         # キャッシュ確認
         cached = await self._get_cache(cache_key)
@@ -115,12 +115,12 @@ class MarketService:
             return cached
         
         # キャッシュミス時はyfinanceから取得
-        data = await self._fetch_with_delay('^DJI')
+        data = await self._fetch_with_delay('^N225=F')
         
         if data:
             result = {
-                'name': 'NYダウ',
-                'code': 'DJI',
+                'name': '日経平均先物ミニ',
+                'code': 'NK225F',
                 **data
             }
             # キャッシュ保存
@@ -140,12 +140,12 @@ class MarketService:
         
         # キャッシュミス時は取得
         nikkei = await self.get_nikkei_225()
-        dow = await self.get_dow_jones()
+        futures = await self.get_nikkei_futures()
         
         result = {
             'indices': {
                 'nikkei_225': nikkei,
-                'dow_jones': dow,
+                'nikkei_futures': futures,
             },
             'updated_at': datetime.now().isoformat(),
             'data_source': 'yahoo_finance'
