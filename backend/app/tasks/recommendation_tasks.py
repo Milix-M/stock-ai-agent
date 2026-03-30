@@ -2,6 +2,7 @@
 レコメンドタスク
 """
 from datetime import datetime
+from math import isnan
 from celery import shared_task
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 import asyncio
@@ -24,6 +25,17 @@ AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 # Redis接続
 redis_client = redis.from_url(settings.REDIS_URL)
+
+def _clean_float(val):
+    """NaN/Inf を None に変換（JSON serialize対応）"""
+    if val is None:
+        return None
+    try:
+        if isnan(val) or val == float('inf') or val == float('-inf'):
+            return None
+    except (TypeError, ValueError):
+        return None
+    return val
 
 
 async def _evaluate_single_stock(
@@ -124,8 +136,8 @@ async def _evaluate_single_stock(
                 "pattern_input": pattern.raw_input,
                 "match_score": min(score / max(len(matched), 1), 1.0),
                 "matched_criteria": matched,
-                "current_price": price_data.get("current_price"),
-                "change_percent": price_data.get("change_percent"),
+                "current_price": _clean_float(price_data.get("current_price")),
+                "change_percent": _clean_float(price_data.get("change_percent")),
                 "reason": f"{stock_info.name if stock_info else code}は{pattern.name}に適合（{', '.join(matched)}）",
                 "trend_info": trend_info if price_trend else None,
                 "event_keywords": event_keywords if event_keywords else None,
