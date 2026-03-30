@@ -25,12 +25,12 @@ export default {
   },
   safelist: [
     // Color theme presets for stock rise/fall
-    'text-emerald-600', 'text-sky-600', 'text-violet-600',
-    'text-red-600', 'text-orange-600', 'text-pink-600',
+    'text-emerald-600', 'text-sky-600', 'text-violet-600', 'text-red-600',
+    'text-red-600', 'text-orange-600', 'text-pink-600', 'text-green-600',
     'bg-emerald-100', 'bg-sky-100', 'bg-violet-100',
-    'bg-red-100', 'bg-orange-100', 'bg-pink-100',
+    'bg-red-100', 'bg-orange-100', 'bg-pink-100', 'bg-green-100',
     'text-emerald-700', 'text-sky-700', 'text-violet-700',
-    'text-red-700', 'text-orange-700', 'text-pink-700',
+    'text-red-700', 'text-orange-700', 'text-pink-700', 'text-green-700',
   ],
   plugins: [
     require('@tailwindcss/forms'),

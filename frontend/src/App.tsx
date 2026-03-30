@@ -10,6 +10,7 @@ import PatternCreatePage from './pages/PatternCreatePage'
 import WatchlistPage from './pages/WatchlistPage'
 import NotificationSettingsPage from './pages/NotificationSettingsPage'
 import NotificationHistoryPage from './pages/NotificationHistoryPage'
+import SettingsPage from './pages/SettingsPage'
 import AuthGuard from './components/AuthGuard'
 import Layout from './components/Layout'
 import PasswordResetRequestPage from './pages/PasswordResetRequestPage'
@@ -34,6 +35,7 @@ function App() {
             <Route path="/watchlist" element={<WatchlistPage />} />
             <Route path="/notifications" element={<NotificationHistoryPage />} />
             <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>
       </Routes>

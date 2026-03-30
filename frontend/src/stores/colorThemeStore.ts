@@ -38,6 +38,15 @@ export const RISE_PRESETS: ColorPreset[] = [
     bgClass: 'bg-violet-50',
     borderClass: 'border-violet-200',
   },
+  {
+    id: 'red',
+    label: 'レッド',
+    preview: '#dc2626',
+    textClass: 'text-red-600',
+    bgTextClass: 'bg-red-100 text-red-700',
+    bgClass: 'bg-red-50',
+    borderClass: 'border-red-200',
+  },
 ]
 
 export const FALL_PRESETS: ColorPreset[] = [
@@ -67,6 +76,15 @@ export const FALL_PRESETS: ColorPreset[] = [
     bgTextClass: 'bg-pink-100 text-pink-700',
     bgClass: 'bg-pink-50',
     borderClass: 'border-pink-200',
+  },
+  {
+    id: 'green',
+    label: 'グリーン',
+    preview: '#16a34a',
+    textClass: 'text-green-600',
+    bgTextClass: 'bg-green-100 text-green-700',
+    bgClass: 'bg-green-50',
+    borderClass: 'border-green-200',
   },
 ]
 

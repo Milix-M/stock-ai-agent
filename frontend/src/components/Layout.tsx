@@ -9,7 +9,7 @@ const navItems = [
   { to: '/patterns', label: 'パターン管理', icon: 'pattern' },
   { to: '/watchlist', label: 'ウォッチリスト', icon: 'watchlist' },
   { to: '/notifications', label: '通知履歴', icon: 'bell' },
-  { to: '/settings/notifications', label: '通知設定', icon: 'settings' },
+  { to: '/settings', label: '設定', icon: 'settings' },
 ]
 
 function NavIcon({ name, className }: { name: string; className?: string }) {
