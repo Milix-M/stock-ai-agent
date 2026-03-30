@@ -7,6 +7,7 @@ import {
   updateNotificationSettings,
   type NotificationSettings,
 } from '../services/notification'
+import ColorThemeSettings from './ColorThemeSettings'
 
 const defaultSettings: NotificationSettings = {
   recommend_enabled: true,
@@ -292,6 +293,9 @@ export default function NotificationSettings() {
               />
             </div>
           </div>
+
+          <ColorThemeSettings />
+
         </div>
 
         {/* 保存ボタン */}
