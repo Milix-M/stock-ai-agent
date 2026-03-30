@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { stockApi } from '../services/stock'
 import { watchlistApi } from '../services/watchlist'
+import { useColorThemeStore, RISE_PRESETS, FALL_PRESETS } from '../stores/colorThemeStore'
 
 interface StockDetail {
   code: string
@@ -99,7 +100,7 @@ export default function StockDetailPage() {
                 <span className="text-3xl font-bold text-slate-900">¥{formatNumber(stock.current_price)}</span>
                 {stock.change_percent != null && (
                   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-semibold ${
-                    stock.change_percent >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                    stock.change_percent >= 0 ? (RISE_PRESETS.find(p => p.id === useColorThemeStore.getState().riseColorId)?.bgTextClass || 'bg-emerald-100 text-emerald-700') : (FALL_PRESETS.find(p => p.id === useColorThemeStore.getState().fallColorId)?.bgTextClass || 'bg-red-100 text-red-700')
                   }`}>
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       {stock.change_percent >= 0 ? (

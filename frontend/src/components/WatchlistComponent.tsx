@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useWatchlistStore } from '../stores/watchlistStore'
+import { useColorThemeStore, RISE_PRESETS, FALL_PRESETS } from '../stores/colorThemeStore'
 import StockSearchModal from './StockSearchModal'
 
 export default function WatchlistComponent() {
@@ -94,7 +95,7 @@ export default function WatchlistComponent() {
                     </td>
                     <td className="px-6 py-3.5 text-right hidden sm:table-cell">
                       {item.change_percent !== undefined ? (
-                        <span className={`inline-flex items-center gap-0.5 text-sm font-semibold ${item.change_percent >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        <span className={`inline-flex items-center gap-0.5 text-sm font-semibold ${item.change_percent >= 0 ? (RISE_PRESETS.find(p => p.id === useColorThemeStore.getState().riseColorId)?.textClass || 'text-emerald-600') : (FALL_PRESETS.find(p => p.id === useColorThemeStore.getState().fallColorId)?.textClass || 'text-red-600')}`}>
                           {item.change_percent >= 0 ? '+' : ''}{item.change_percent.toFixed(2)}%
                         </span>
                       ) : '-'}

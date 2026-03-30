@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { marketApi, MarketIndex } from '../services/market'
+import { useColorThemeStore, RISE_PRESETS, FALL_PRESETS } from '../stores/colorThemeStore'
 
 export default function MarketOverview() {
   const [indices, setIndices] = useState<{
@@ -35,6 +36,10 @@ export default function MarketOverview() {
   }
 
   const renderIndex = (data: MarketIndex | null, label: string) => {
+    const { riseColorId, fallColorId } = useColorThemeStore.getState()
+    const riseText = RISE_PRESETS.find(p => p.id === riseColorId)?.textClass || 'text-emerald-600'
+    const fallText = FALL_PRESETS.find(p => p.id === fallColorId)?.textClass || 'text-red-600'
+
     if (!data) {
       return (
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
@@ -54,14 +59,14 @@ export default function MarketOverview() {
           {formatNumber(data.current)}
         </p>
         <div className="flex items-center gap-1 mt-1">
-          <svg className={`w-4 h-4 ${isPositive ? 'text-emerald-600' : 'text-red-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className={`w-4 h-4 ${isPositive ? riseText : fallText}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             {isPositive ? (
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
             ) : (
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
             )}
           </svg>
-          <span className={`text-sm font-semibold ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
+          <span className={`text-sm font-semibold ${isPositive ? riseText : fallText}`}>
             {isPositive ? '+' : ''}{data.change.toFixed(2)}
             <span className="ml-0.5 text-xs font-medium">
               ({isPositive ? '+' : ''}{data.change_percent.toFixed(2)}%)
