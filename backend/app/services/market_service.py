@@ -115,7 +115,7 @@ class MarketService:
             return cached
         
         # キャッシュミス時はyfinanceから取得
-        data = await self._fetch_with_delay('^N225=F')
+        data = await self._fetch_with_delay('NIY=F')
         
         if data:
             result = {
