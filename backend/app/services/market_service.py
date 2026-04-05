@@ -19,9 +19,9 @@ class MarketService:
     """マーケットデータサービス"""
     
     # リクエスト間隔（秒）- 429エラー回避
-    REQUEST_DELAY = 3
-    # キャッシュ有効期限（秒）- 30秒
-    CACHE_TTL = 30
+    REQUEST_DELAY = 1
+    # キャッシュ有効期限（秒）- 60秒
+    CACHE_TTL = 60
     
     def __init__(self):
         self.redis = redis.from_url(settings.REDIS_URL)
@@ -120,6 +120,7 @@ class MarketService:
         if data:
             result = {
                 'name': '日経平均先物ミニ',
+<<<<<<< HEAD
                 'code': 'NK225F',
                 **data
             }
@@ -138,14 +139,16 @@ class MarketService:
             cached['cached'] = True
             return cached
         
-        # キャッシュミス時は取得
-        nikkei = await self.get_nikkei_225()
-        futures = await self.get_nikkei_futures()
+        # キャッシュミス時は並列取得
+        nikkei, nikkei_futures = await asyncio.gather(
+            self.get_nikkei_225(),
+            self.get_nikkei_futures(),
+        )
         
         result = {
             'indices': {
                 'nikkei_225': nikkei,
-                'nikkei_futures': futures,
+                'nikkei_futures': nikkei_futures,
             },
             'updated_at': datetime.now().isoformat(),
             'data_source': 'yahoo_finance'
