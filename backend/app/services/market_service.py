@@ -120,7 +120,6 @@ class MarketService:
         if data:
             result = {
                 'name': '日経平均先物ミニ',
-<<<<<<< HEAD
                 'code': 'NK225F',
                 **data
             }
